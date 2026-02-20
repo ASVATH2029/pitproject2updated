@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentication UI - PITS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Poppins:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --primary-color: #545454;
+            --input-bg-color: rgba(84, 84, 84, 0.35);
+            --font-heading: 'Poppins', sans-serif;
+            --font-label: 'DM Sans', sans-serif;
+            --font-input: 'Poppins', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--primary-color);
+            font-family: var(--font-heading);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 3rem;
+            padding: 2rem;
+            position: relative;
+        }
+
+        .logo-section {
+            position: absolute;
+            left: 2rem;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+        }
+
+        .form-wrapper {
+            max-width: 432px;
+            width: 100%;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            font-family: var(--font-heading);
+            font-weight: 700;
+            font-size: 2.25rem;
+            margin-bottom: 0.45rem;
+            color: var(--primary-color);
+        }
+
+        .subtitle {
+            font-family: var(--font-label);
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-bottom: 2.7rem;
+            color: var(--primary-color);
+        }
+
+        .input-group {
+            margin-bottom: 1.35rem;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            font-family: var(--font-label);
+            font-size: 0.77rem;
+            letter-spacing: 0.9px;
+            text-transform: uppercase;
+            margin-bottom: 0.45rem;
+            font-weight: 500;
+            color: var(--primary-color);
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 13px;
+            background-color: var(--input-bg-color);
+            border: none;
+            outline: none;
+            font-family: var(--font-input);
+            font-size: 0.85rem;
+            color: #333;
+            border-radius: 2px;
+        }
+
+        ::placeholder {
+            color: #545454;
+            opacity: 0.8;
+        }
+
+        select {
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+            background-repeat: no-repeat;
+            background-position: right 15px top 50%;
+            background-size: 12px auto;
+        }
+
+        .btn-submit {
+            background: none;
+            border: none;
+            font-family: var(--font-heading);
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: var(--primary-color);
+            cursor: pointer;
+            margin-top: 0.9rem;
+            padding: 9px 18px;
+        }
+
+        .btn-submit:hover {
+            opacity: 0.8;
+        }
+
+        .page-section {
+            display: none;
+            animation: fadeIn 0.5s;
+        }
+
+        .page-section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .demo-nav {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #f0f0f0;
+            padding: 10px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        .demo-nav button {
+            margin: 0 5px;
+            cursor: pointer;
+            padding: 5px 10px;
+        }
+
+        .page-section {
+            width: 100%;
+            max-width: 432px;
+        }
+
+        form {
+            width: 100%;
+        }
+
+        .file-manager-wrapper {
+            width: 100%;
+            max-width: 550px;
+        }
+
+        .file-list-container {
+            background-color: #BFBFBF;
+            height: 320px;
+            overflow-y: auto;
+            border: none;
+        }
+
+        .file-list-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .file-list-container::-webkit-scrollbar-track {
+            background: #BFBFBF;
+        }
+
+        .file-list-container::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+
+        .file-row {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            border-bottom: 1px solid #545454;
+        }
+
+        .file-row:last-child {
+            border-bottom: none;
+        }
+
+        .file-checkbox {
+            width: 18px;
+            height: 18px;
+            margin-right: 15px;
+            cursor: pointer;
+            border: 1px solid #545454;
+            background: transparent;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            position: relative;
+        }
+
+        .file-checkbox:checked {
+            background-color: #545454;
+            border-color: #545454;
+        }
+
+        .file-checkbox:checked::after {
+            content: '✓';
+            position: absolute;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .file-name {
+            font-family: var(--font-label);
+            font-size: 1rem;
+            color: #333;
+            font-weight: 400;
+        }
+
+        .action-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 1.5rem;
+            gap: 1.5rem;
+        }
+
+        .btn-action {
+            flex: 1;
+            background-color: #A6A6A6;
+            color: #444444;
+            border: none;
+            padding: 12px 0;
+            font-family: var(--font-heading);
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .btn-action:hover {
+            opacity: 0.8;
+        }
+
+        @media (max-width: 768px) {
+            .logo-section {
+                position: static;
+                transform: none;
+                margin-bottom: 2rem;
+            }
+
+            .container {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="demo-nav">
+        <span>View Page: </span>
+        <button onclick="showPage('signup')">Sign Up</button>
+        <button onclick="showPage('login')">Login</button>
+        <button onclick="showPage('forgot')">Forgot Pass</button>
+        <button onclick="showPage('filemanager')">File Manager</button>
+    </div>
+    <div class="container">
+        <div class="logo-section">
+            <img src="pits logo.png" alt="PITS Logo" style="width: 120px; height: auto;">
+        </div>
+        <div class="form-wrapper">
+            <div id="signup" class="page-section active">
+                <h1>Create new Account</h1>
+                <div class="subtitle">Already Registered? Login</div>
+                <form>
+                    <div class="input-group">
+                        <label>USERNAME</label>
+                        <input type="text" placeholder="textbox">
+                    </div>
+                    <div class="input-group">
+                        <label>EMAIL</label>
+                        <input type="email" placeholder="emaild">
+                    </div>
+                    <div class="input-group">
+                        <label>PASSWORD</label>
+                        <input type="password" placeholder="******">
+                    </div>
+                    <button type="button" class="btn-submit">sign up</button>
+                </form>
+            </div>
+            <div id="login" class="page-section">
+                <h1>Login</h1>
+                <div class="subtitle">Sign in to continue</div>
+                <form>
+                    <div class="input-group">
+                        <label>LOGIN ID</label>
+                        <input type="text" placeholder="Username">
+                    </div>
+                    <div class="input-group">
+                        <label>PASSWORD</label>
+                        <input type="password" placeholder="******">
+                    </div>
+                    <button type="button" class="btn-submit">Login</button>
+                </form>
+            </div>
+            <div id="forgot" class="page-section">
+                <h1>Forgot Password</h1>
+                <div class="subtitle">New Password</div>
+                <form>
+                    <div class="input-group">
+                        <label>EMAIL</label>
+                        <input type="email" placeholder="hello@reallygreatsite.com">
+                    </div>
+                    <button type="button" class="btn-submit">send</button>
+                </form>
+            </div>
+            <div id="filemanager" class="page-section file-manager-wrapper">
+                <div class="file-list-container" id="fileList">
+                    <div class="file-row">
+                        <input type="checkbox" class="file-checkbox">
+                        <span class="file-name">example.png</span>
+                    </div>
+                    <div class="file-row">
+                        <input type="checkbox" class="file-checkbox">
+                        <span class="file-name">document.pdf</span>
+                    </div>
+                    <div class="file-row">
+                        <input type="checkbox" class="file-checkbox">
+                        <span class="file-name">report.docx</span>
+                    </div>
+                    <div class="file-row">
+                        <input type="checkbox" class="file-checkbox">
+                        <span class="file-name">presentation.pptx</span>
+                    </div>
+                    <div class="file-row">
+                        <input type="checkbox" class="file-checkbox">
+                        <span class="file-name">spreadsheet.xlsx</span>
+                    </div>
+                    <div class="file-row">
+                        <input type="checkbox" class="file-checkbox">
+                        <span class="file-name">image_2024.jpg</span>
+                    </div>
+                    <div class="file-row">
+                        <input type="checkbox" class="file-checkbox">
+                        <span class="file-name">backup.zip</span>
+                    </div>
+                    <div class="file-row">
+                        <input type="checkbox" class="file-checkbox">
+                        <span class="file-name">notes.txt</span>
+                    </div>
+                </div>
+                <div class="action-buttons">
+                    <button class="btn-action" onclick="handleAction('upload')">Upload</button>
+                    <button class="btn-action" onclick="handleAction('delete')">Delete</button>
+                    <button class="btn-action" onclick="handleDownload()">Download</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        function showPage(pageId) {
+            document.querySelectorAll('.page-section').forEach(el => el.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+        }
+        function handleDownload() {
+            const checkboxes = document.querySelectorAll('.file-checkbox:checked');
+            if (checkboxes.length > 0) {
+                let fileNames = [];
+                checkboxes.forEach(box => {
+                    fileNames.push(box.nextElementSibling.innerText);
+                });
+                alert("Downloading: \n" + fileNames.join("\n"));
+            } else {
+                alert("Please select a file to download.");
+            }
+        }
+        function handleAction(type) {
+            if (type === 'delete') {
+                const checkboxes = document.querySelectorAll('.file-checkbox:checked');
+                if (checkboxes.length > 0) {
+                    if (confirm("Delete selected files?")) {
+                        checkboxes.forEach(box => box.parentElement.remove());
+                    }
+                } else {
+                    alert("Select files to delete.");
+                }
+            } else if (type === 'upload') {
+                alert("Upload functionality would open file picker here.");
+            }
+        }
+    </script>
+</body>
+
+</html>
