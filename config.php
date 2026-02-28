@@ -1,5 +1,4 @@
 <?php
-define('BASE_DIR', '/home/');
 define('PROJECT_DIR', '/srv/project');
 define('UPLOAD_QUOTA', 200 * 1024 * 1024);
 define('MAX_UPLOAD_SIZE', 50 * 1024 * 1024);
@@ -16,18 +15,31 @@ function get_role($username)
     return in_array($username, ADMIN_USERS) ? 'admin' : 'collaborator';
 }
 
+// Every user gets their own isolated folder: /srv/project/<username>/
 function get_user_dir($username)
 {
-    $role = get_role($username);
-    if ($role === 'admin') {
-        return PROJECT_DIR;
+    $safe = preg_replace('/[^a-zA-Z0-9_]/', '', $username);
+    return PROJECT_DIR . '/' . $safe;
+}
+
+// Create the user's project directory if it doesn't exist
+function ensure_user_dir($username)
+{
+    $dir = get_user_dir($username);
+    if (!is_dir($dir)) {
+        mkdir($dir, 0750, true);
+        // Set ownership so www-data can read/write and user owns it
+        exec('sudo chown www-data:www-data ' . escapeshellarg($dir) . ' 2>&1');
+        exec('sudo chmod 750 ' . escapeshellarg($dir) . ' 2>&1');
     }
-    return BASE_DIR . $username;
+    return $dir;
 }
 
 function dir_size($dir)
 {
     $size = 0;
+    if (!is_dir($dir))
+        return 0;
     foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS)) as $file) {
         $size += $file->getSize();
     }

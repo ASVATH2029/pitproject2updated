@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/config.php';
 session_start();
 if (!empty($_SESSION['username'])) {
     header('Location: dashboard.php');
@@ -57,9 +58,8 @@ if ($exit_code !== 0) {
     exit;
 }
 
-// Set correct permissions on the new user's home directory
-exec('sudo chown ' . escapeshellarg($username) . ':www-data ' . escapeshellarg('/home/' . $username) . ' 2>&1');
-exec('sudo chmod 750 ' . escapeshellarg('/home/' . $username) . ' 2>&1');
+// Create the user's project directory at /srv/project/<username>/
+ensure_user_dir($username);
 
 header('Location: signup.php?success=1');
 exit;

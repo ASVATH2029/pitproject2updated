@@ -2,12 +2,8 @@
 require_once __DIR__ . '/session.php';
 require_login();
 
-$user_dir = get_user_dir(get_username());
-
-if (!is_dir($user_dir)) {
-    echo json_encode(['error' => 'Directory not found']);
-    exit;
-}
+// Ensure the user's project directory exists
+$user_dir = ensure_user_dir(get_username());
 
 header('Content-Type: application/json');
 

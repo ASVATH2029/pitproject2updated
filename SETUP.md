@@ -144,24 +144,28 @@ sudo systemctl restart apache2
 
 ## 7. User Directories
 
-Each Linux user's home directory needs to be accessible by Apache:
+All user files are stored under `/srv/project/<username>/`. Each user gets their own isolated folder, automatically created on registration or first login.
 
 ```bash
-# For your admin user
-sudo chmod 750 /home/aditya
-sudo chown aditya:www-data /home/aditya
-
-# Create the shared project directory (for admin role)
+# Create the base project directory
 sudo mkdir -p /srv/project
-sudo chown root:www-data /srv/project
-sudo chmod 775 /srv/project
+sudo chown www-data:www-data /srv/project
+sudo chmod 755 /srv/project
 ```
 
-To add student/collaborator accounts:
+> **Note:** Individual user folders (`/srv/project/aditya/`, `/srv/project/student1/`, etc.) are created automatically by the application when users register or log in. No manual action needed.
+
+### Sudoers for User Registration
+
+The sign-up system creates Linux users via `useradd` and `chpasswd`. Add a sudoers rule:
+
 ```bash
-sudo adduser student1          # Creates user with home directory
-sudo chmod 750 /home/student1
-sudo chown student1:www-data /home/student1
+sudo visudo -f /etc/sudoers.d/pits-register
+```
+
+Add this line:
+```
+www-data ALL=(root) NOPASSWD: /usr/sbin/useradd, /usr/sbin/chpasswd, /bin/chown, /bin/chmod, /bin/mkdir
 ```
 
 ---
@@ -233,8 +237,7 @@ sudo certbot --apache -d yourdomain.com
 | Web root | `/var/www/html/` |
 | Login page | `http://<VM_IP>/index.php` |
 | Admin user in config | `aditya` |
-| Admin file directory | `/srv/project` |
-| User file directory | `/home/<username>` |
+| All user files | `/srv/project/<username>/` |
 | Upload limit | 50 MB per file |
 | User quota | 200 MB total |
 | Rate limit | 5 login attempts per 10 min per IP |

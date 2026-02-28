@@ -14,11 +14,7 @@ if (empty($_FILES['file'])) {
     exit;
 }
 
-$user_dir = get_user_dir(get_username());
-if (!is_dir($user_dir)) {
-    echo json_encode(['error' => 'User directory not found']);
-    exit;
-}
+$user_dir = ensure_user_dir(get_username());
 
 $file = $_FILES['file'];
 

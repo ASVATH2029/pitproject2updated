@@ -23,7 +23,8 @@ $attempts = [];
 if (file_exists($rate_file)) {
     $attempts = json_decode(file_get_contents($rate_file), true) ?: [];
     $attempts = array_filter($attempts, function ($t) {
-        return $t > time() - 600; });
+        return $t > time() - 600;
+    });
 }
 
 if (count($attempts) >= 5) {
@@ -57,6 +58,8 @@ if ($exit_code === 0) {
     $_SESSION['username'] = $username;
     $_SESSION['role'] = get_role($username);
     $_SESSION['login_time'] = time();
+    // Create user's project directory if it doesn't exist
+    ensure_user_dir($username);
     header('Location: dashboard.php');
     exit;
 }
