@@ -33,7 +33,7 @@ if (count($attempts) >= 5) {
 
 // Authenticate via PAM helper
 $helper = __DIR__ . '/pam_auth_helper.sh';
-$cmd = escapeshellcmd($helper) . ' ' . escapeshellarg($username);
+$cmd = 'sudo ' . escapeshellcmd($helper) . ' ' . escapeshellarg($username);
 $descriptors = [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']];
 $process = proc_open($cmd, $descriptors, $pipes);
 

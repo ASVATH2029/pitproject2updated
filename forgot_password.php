@@ -4,7 +4,7 @@ if (!empty($_SESSION['username'])) {
     header('Location: dashboard.php');
     exit;
 }
-$error = $_GET['error'] ?? '';
+$status = $_GET['status'] ?? '';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -12,7 +12,7 @@ $error = $_GET['error'] ?? '';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PITS - Login</title>
+    <title>PITS - Forgot Password</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -144,6 +144,13 @@ $error = $_GET['error'] ?? '';
             max-width: 432px;
         }
 
+        .success-msg {
+            color: #27ae60;
+            font-family: var(--font-label);
+            font-size: 0.8rem;
+            margin-bottom: 1rem;
+        }
+
         .error-msg {
             color: #c0392b;
             font-family: var(--font-label);
@@ -188,26 +195,26 @@ $error = $_GET['error'] ?? '';
             <img src="pits logo.png" alt="PITS Logo" style="width: 120px; height: auto;">
         </div>
         <div class="form-wrapper">
-            <h1>Login</h1>
-            <div class="subtitle">Sign in to continue</div>
-            <?php if ($error === '1'): ?>
-                <div class="error-msg">Invalid username or password.</div>
-            <?php elseif ($error === '2'): ?>
-                <div class="error-msg">Too many login attempts. Try again in 10 minutes.</div>
+            <h1>Forgot Password</h1>
+            <div class="subtitle">Reset your password</div>
+            <?php if ($status === 'sent'): ?>
+                <div class="success-msg">Password reset request submitted. Please contact the system administrator to
+                    complete the reset.</div>
+            <?php elseif ($status === 'error'): ?>
+                <div class="error-msg">User not found. Please check your username.</div>
             <?php endif; ?>
-            <form action="auth.php" method="POST">
+            <form action="reset_request.php" method="POST">
                 <div class="input-group">
-                    <label>LOGIN ID</label>
-                    <input type="text" name="username" placeholder="Username" required>
+                    <label>USERNAME</label>
+                    <input type="text" name="username" placeholder="Enter your username" required>
                 </div>
                 <div class="input-group">
-                    <label>PASSWORD</label>
-                    <input type="password" name="password" placeholder="******" required>
+                    <label>EMAIL</label>
+                    <input type="email" name="email" placeholder="hello@reallygreatsite.com" required>
                 </div>
-                <button type="submit" class="btn-submit">Login</button>
+                <button type="submit" class="btn-submit">Send</button>
             </form>
-            <div class="link-text"><a href="forgot_password.php">Forgot Password?</a></div>
-            <div class="link-text">Don't have an account? <a href="signup.php">Sign Up</a></div>
+            <div class="link-text">Remember your password? <a href="index.php">Login</a></div>
         </div>
     </div>
 </body>

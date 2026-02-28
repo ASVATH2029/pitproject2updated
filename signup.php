@@ -5,6 +5,7 @@ if (!empty($_SESSION['username'])) {
     exit;
 }
 $error = $_GET['error'] ?? '';
+$success = $_GET['success'] ?? '';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -12,7 +13,7 @@ $error = $_GET['error'] ?? '';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PITS - Login</title>
+    <title>PITS - Sign Up</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -151,6 +152,13 @@ $error = $_GET['error'] ?? '';
             margin-bottom: 1rem;
         }
 
+        .success-msg {
+            color: #27ae60;
+            font-family: var(--font-label);
+            font-size: 0.8rem;
+            margin-bottom: 1rem;
+        }
+
         .link-text {
             font-family: var(--font-label);
             font-size: 0.8rem;
@@ -166,6 +174,13 @@ $error = $_GET['error'] ?? '';
 
         .link-text a:hover {
             opacity: 0.7;
+        }
+
+        .password-hint {
+            font-family: var(--font-label);
+            font-size: 0.7rem;
+            color: #888;
+            margin-top: 0.3rem;
         }
 
         @media (max-width: 768px) {
@@ -188,26 +203,40 @@ $error = $_GET['error'] ?? '';
             <img src="pits logo.png" alt="PITS Logo" style="width: 120px; height: auto;">
         </div>
         <div class="form-wrapper">
-            <h1>Login</h1>
-            <div class="subtitle">Sign in to continue</div>
+            <h1>Create new Account</h1>
+            <div class="subtitle">Already Registered? <a href="index.php"
+                    style="color: var(--primary-color); font-weight: 700; text-decoration: none;">Login</a></div>
             <?php if ($error === '1'): ?>
-                <div class="error-msg">Invalid username or password.</div>
+                <div class="error-msg">Username already exists.</div>
             <?php elseif ($error === '2'): ?>
-                <div class="error-msg">Too many login attempts. Try again in 10 minutes.</div>
+                <div class="error-msg">Invalid username. Use only letters, numbers, and underscores (3–32 characters).</div>
+            <?php elseif ($error === '3'): ?>
+                <div class="error-msg">Password must be at least 6 characters.</div>
+            <?php elseif ($error === '4'): ?>
+                <div class="error-msg">Passwords do not match.</div>
+            <?php elseif ($error === '5'): ?>
+                <div class="error-msg">Failed to create account. Contact the administrator.</div>
             <?php endif; ?>
-            <form action="auth.php" method="POST">
+            <?php if ($success === '1'): ?>
+                <div class="success-msg">Account created successfully! You can now log in.</div>
+            <?php endif; ?>
+            <form action="register.php" method="POST">
                 <div class="input-group">
-                    <label>LOGIN ID</label>
-                    <input type="text" name="username" placeholder="Username" required>
+                    <label>USERNAME</label>
+                    <input type="text" name="username" placeholder="Choose a username" required>
                 </div>
                 <div class="input-group">
                     <label>PASSWORD</label>
                     <input type="password" name="password" placeholder="******" required>
+                    <div class="password-hint">Minimum 6 characters</div>
                 </div>
-                <button type="submit" class="btn-submit">Login</button>
+                <div class="input-group">
+                    <label>CONFIRM PASSWORD</label>
+                    <input type="password" name="confirm_password" placeholder="******" required>
+                </div>
+                <button type="submit" class="btn-submit">Create Account</button>
             </form>
-            <div class="link-text"><a href="forgot_password.php">Forgot Password?</a></div>
-            <div class="link-text">Don't have an account? <a href="signup.php">Sign Up</a></div>
+            <div class="link-text">Already have an account? <a href="index.php">Login</a></div>
         </div>
     </div>
 </body>
