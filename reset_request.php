@@ -1,5 +1,7 @@
 <?php
+require_once __DIR__ . '/config.php';
 session_start();
+
 if (!empty($_SESSION['username'])) {
     header('Location: dashboard.php');
     exit;
@@ -19,9 +21,8 @@ if (!preg_match('/^[a-zA-Z0-9_]{1,32}$/', $username)) {
     exit;
 }
 
-// Check if the user exists on the system
-$check = shell_exec('id ' . escapeshellarg($username) . ' 2>&1');
-if (strpos($check, 'no such user') !== false) {
+// Check if the user exists (file-based)
+if (!user_exists($username)) {
     header('Location: forgot_password.php?status=error');
     exit;
 }

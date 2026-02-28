@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/config.php';
 session_start();
+
 if (!empty($_SESSION['username'])) {
     header('Location: dashboard.php');
     exit;
@@ -11,9 +12,12 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$username = $_POST['username'] ?? '';
+$username = trim($_POST['username'] ?? '');
 $password = $_POST['password'] ?? '';
 $confirm = $_POST['confirm_password'] ?? '';
+
+// Sanitize username
+$username = preg_replace('/[^a-zA-Z0-9_-]/', '', $username);
 
 // Validate username: letters, numbers, underscores, 3-32 chars
 if (!preg_match('/^[a-zA-Z0-9_]{3,32}$/', $username)) {
@@ -33,33 +37,36 @@ if ($password !== $confirm) {
     exit;
 }
 
+$userDir = get_user_dir($username);
+
 // Check if user already exists
-$check = shell_exec('id ' . escapeshellarg($username) . ' 2>&1');
-if (strpos($check, 'no such user') === false) {
+if (is_dir($userDir) && file_exists($userDir . '/.user')) {
     header('Location: signup.php?error=1');
     exit;
 }
 
-// Create the Linux user with the provided password
-$cmd = sprintf(
-    'sudo useradd -m -s /bin/bash %s && echo %s:%s | sudo chpasswd',
-    escapeshellarg($username),
-    escapeshellarg($username),
-    escapeshellarg($password)
-);
-
-$output = [];
-$exit_code = 0;
-exec($cmd . ' 2>&1', $output, $exit_code);
-
-if ($exit_code !== 0) {
-    error_log('PITS register failed: ' . implode(' ', $output));
+// Create personal directory
+if (!mkdir($userDir, 0775, true) && !is_dir($userDir)) {
+    error_log('PITS register failed: Could not create directory ' . $userDir);
     header('Location: signup.php?error=5');
     exit;
 }
 
-// Create the user's project directory at /srv/project/<username>/
-ensure_user_dir($username);
+// Save user credentials (file-based)
+$hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+
+$userData = json_encode([
+    'username' => $username,
+    'password' => $hashedPassword,
+    'role' => in_array($username, ADMIN_USERS) ? 'admin' : 'collaborator',
+    'created' => date('Y-m-d H:i:s')
+]);
+
+if (file_put_contents($userDir . '/.user', $userData) === false) {
+    error_log('PITS register failed: Could not write user file');
+    header('Location: signup.php?error=5');
+    exit;
+}
 
 header('Location: signup.php?success=1');
 exit;

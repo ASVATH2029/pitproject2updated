@@ -1,5 +1,6 @@
 <?php
 define('PROJECT_DIR', '/srv/project');
+define('BASE_DIR', PROJECT_DIR . '/');
 define('UPLOAD_QUOTA', 200 * 1024 * 1024);
 define('MAX_UPLOAD_SIZE', 50 * 1024 * 1024);
 define('ADMIN_USERS', ['aditya', 'pitsnas']);
@@ -12,13 +13,21 @@ ini_set('post_max_size', '55M');
 
 function get_role($username)
 {
+    // Check .user file first, fallback to ADMIN_USERS list
+    $userFile = get_user_dir($username) . '/.user';
+    if (file_exists($userFile)) {
+        $data = json_decode(file_get_contents($userFile), true);
+        if (isset($data['role'])) {
+            return $data['role'];
+        }
+    }
     return in_array($username, ADMIN_USERS) ? 'admin' : 'collaborator';
 }
 
 // Every user gets their own isolated folder: /srv/project/<username>/
 function get_user_dir($username)
 {
-    $safe = preg_replace('/[^a-zA-Z0-9_]/', '', $username);
+    $safe = preg_replace('/[^a-zA-Z0-9_-]/', '', $username);
     return PROJECT_DIR . '/' . $safe;
 }
 
@@ -27,12 +36,26 @@ function ensure_user_dir($username)
 {
     $dir = get_user_dir($username);
     if (!is_dir($dir)) {
-        mkdir($dir, 0750, true);
-        // Set ownership so www-data can read/write and user owns it
-        exec('sudo chown www-data:www-data ' . escapeshellarg($dir) . ' 2>&1');
-        exec('sudo chmod 750 ' . escapeshellarg($dir) . ' 2>&1');
+        mkdir($dir, 0775, true);
     }
     return $dir;
+}
+
+// Check if a user account exists (has a .user credential file)
+function user_exists($username)
+{
+    $userFile = get_user_dir($username) . '/.user';
+    return file_exists($userFile);
+}
+
+// Get user data from .user credential file
+function get_user_data($username)
+{
+    $userFile = get_user_dir($username) . '/.user';
+    if (!file_exists($userFile)) {
+        return null;
+    }
+    return json_decode(file_get_contents($userFile), true);
 }
 
 function dir_size($dir)
@@ -41,6 +64,9 @@ function dir_size($dir)
     if (!is_dir($dir))
         return 0;
     foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS)) as $file) {
+        // Skip the .user credential file from size calculation
+        if ($file->getFilename() === '.user')
+            continue;
         $size += $file->getSize();
     }
     return $size;

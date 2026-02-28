@@ -12,6 +12,9 @@ $items = scandir($user_dir);
 foreach ($items as $item) {
     if ($item === '.' || $item === '..')
         continue;
+    // Skip hidden files (like .user credential file)
+    if ($item[0] === '.')
+        continue;
     $path = $user_dir . '/' . $item;
     if (is_file($path)) {
         $files[] = [
