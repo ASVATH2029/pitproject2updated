@@ -1,17 +1,12 @@
 <?php
-require_once __DIR__ . '/config.php';
 session_start();
 if (!empty($_SESSION['username'])) {
-    if (get_role($_SESSION['username']) === 'admin') {
-        header('Location: admin.php');
-    } else {
-        header('Location: dashboard.php');
-    }
+    header('Location: dashboard.php');
     exit;
 }
 session_write_close();
 $error = $_GET['error'] ?? '';
-$reset = $_GET['reset'] ?? '';
+$success = $_GET['success'] ?? '';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -19,8 +14,8 @@ $reset = $_GET['reset'] ?? '';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PITS — Login</title>
-    <meta name="description" content="Sign in to the PITS Student Archival System">
+    <title>PITS — Sign Up</title>
+    <meta name="description" content="Create a PITS Student Archival System account">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -28,7 +23,6 @@ $reset = $_GET['reset'] ?? '';
         rel="stylesheet">
     <link rel="stylesheet" href="background.css">
     <style>
-        /* ========== DESIGN TOKENS ========== */
         :root {
             --bg-dark: #0a100a;
             --text-primary: #ffffff;
@@ -43,7 +37,6 @@ $reset = $_GET['reset'] ?? '';
             --btn-text: #2a2a2a;
             --font-heading: 'Libre Baskerville', Georgia, serif;
             --font-label: 'DM Sans', 'Helvetica Neue', sans-serif;
-            --radius-outer: 24px;
             --radius-card: 16px;
             --radius-inner: 12px;
             --radius-pill: 30px;
@@ -69,7 +62,6 @@ $reset = $_GET['reset'] ?? '';
             overflow-x: hidden;
         }
 
-        /* TOP BAR */
         .top-bar {
             position: fixed;
             top: 0;
@@ -99,7 +91,6 @@ $reset = $_GET['reset'] ?? '';
             }
         }
 
-        /* LAYOUT */
         .page-wrapper {
             position: relative;
             z-index: 1;
@@ -110,7 +101,6 @@ $reset = $_GET['reset'] ?? '';
             padding: 90px 3vw 50px;
         }
 
-        /* GLASS CARD */
         .glass-card {
             background: var(--glass-bg);
             backdrop-filter: blur(var(--glass-blur));
@@ -138,7 +128,6 @@ $reset = $_GET['reset'] ?? '';
             }
         }
 
-        /* CARD HEADER */
         .card-header {
             display: flex;
             align-items: center;
@@ -183,7 +172,18 @@ $reset = $_GET['reset'] ?? '';
             margin-bottom: 0;
         }
 
-        /* FORM */
+        .glass-card .subtitle a {
+            color: var(--text-primary);
+            text-decoration: none;
+            font-weight: 700;
+            font-family: var(--font-label);
+            font-size: 0.92rem;
+        }
+
+        .glass-card .subtitle a:hover {
+            text-decoration: underline;
+        }
+
         .input-group {
             margin-bottom: 1.25rem;
             text-align: left;
@@ -223,7 +223,6 @@ $reset = $_GET['reset'] ?? '';
             box-shadow: 0 0 0 3px rgba(160, 200, 140, 0.08), 0 0 20px rgba(160, 200, 140, 0.06);
         }
 
-        /* PASSWORD TOGGLE */
         .password-wrapper {
             position: relative;
         }
@@ -255,7 +254,12 @@ $reset = $_GET['reset'] ?? '';
             fill: var(--text-primary);
         }
 
-        /* BUTTON */
+        .password-hint {
+            font-size: 0.68rem;
+            color: rgba(255, 255, 255, 0.3);
+            margin-top: 5px;
+        }
+
         .btn-submit {
             display: block;
             width: 100%;
@@ -283,25 +287,6 @@ $reset = $_GET['reset'] ?? '';
             transform: scale(0.96) !important;
         }
 
-        /* LINKS */
-        .link-text {
-            font-size: 0.8rem;
-            margin-top: 1rem;
-            color: var(--text-muted);
-            font-family: var(--font-label);
-        }
-
-        .link-text a {
-            color: var(--text-primary);
-            font-weight: 700;
-            text-decoration: none;
-        }
-
-        .link-text a:hover {
-            text-decoration: underline;
-        }
-
-        /* ERROR / SUCCESS */
         .error-msg {
             color: #e74c3c;
             font-size: 0.82rem;
@@ -316,9 +301,12 @@ $reset = $_GET['reset'] ?? '';
             color: #7dcea0;
             font-size: 0.82rem;
             margin-bottom: 1rem;
+            background: rgba(125, 206, 160, 0.1);
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid rgba(125, 206, 160, 0.25);
         }
 
-        /* PARTICLES */
         .particles {
             position: fixed;
             inset: 0;
@@ -354,11 +342,9 @@ $reset = $_GET['reset'] ?? '';
             }
         }
 
-        /* RESPONSIVE */
         @media(max-width:768px) {
             .top-bar {
                 padding: 16px 20px;
-                font-size: 0.82rem;
             }
 
             .glass-card {
@@ -410,7 +396,6 @@ $reset = $_GET['reset'] ?? '';
         @media(max-width:420px) {
             .top-bar {
                 padding: 12px 16px;
-                font-size: 0.75rem;
             }
 
             .page-wrapper {
@@ -436,34 +421,52 @@ $reset = $_GET['reset'] ?? '';
         <div class="glass-card">
             <div class="card-header">
                 <div class="card-title-block">
-                    <h1>Login</h1>
-                    <div class="subtitle">Sign in to continue</div>
+                    <h1>Sign Up</h1>
+                    <div class="subtitle">Already registered? <a href="index.php">Login</a></div>
                 </div>
                 <img src="textbox/NEW UI/pitsnew.png" class="card-logo" alt="PITS Logo">
             </div>
 
-            <?php if ($reset === 'success'): ?>
-                <div class="success-msg" style="background:rgba(125,206,160,0.1);padding:10px 14px;border-radius:8px;border:1px solid rgba(125,206,160,0.25);color:#7dcea0;font-size:0.82rem;margin-bottom:1rem;">✓ Password changed! You can now log in.</div>
+            <?php if ($error === 'exists'): ?>
+                <div class="error-msg">Username already taken. Please choose another.</div>
+            <?php elseif ($error === 'short'): ?>
+                <div class="error-msg">Password must be at least 8 characters.</div>
+            <?php elseif ($error === 'weak_password'): ?>
+                <div class="error-msg">Password requires 8+ chars with letters, numbers, and symbols.</div>
+            <?php elseif ($error === 'invalid'): ?>
+                <div class="error-msg">Invalid username. Use letters, numbers, underscores only.</div>
+            <?php elseif ($error === 'invalidemail'): ?>
+                <div class="error-msg">Please enter a valid email address.</div>
+            <?php elseif ($error === 'mismatch'): ?>
+                <div class="error-msg">Passwords do not match. Please try again.</div>
+            <?php elseif ($error === 'mailfail'): ?>
+                <div class="error-msg">Could not send verification email. Please check your email or try again later.</div>
+            <?php elseif ($error === 'expired'): ?>
+                <div class="error-msg">Verification code expired or too many failed attempts. Please sign up again.</div>
+            <?php elseif ($error === 'fail' || $error !== ''): ?>
+                <div class="error-msg">Registration failed. Please try again.</div>
             <?php endif; ?>
-            <?php if ($error === '1'): ?>
-                <div class="error-msg">Invalid username or password. Please try again.</div>
-            <?php elseif ($error === '2'): ?>
-                <div class="error-msg">Too many failed attempts. Try again in 10 minutes.</div>
-            <?php elseif ($error === '3'): ?>
-                <div class="error-msg">Your session expired. Please log in again.</div>
+            <?php if ($success === '1'): ?>
+                <div class="success-msg">Account created! <a href="index.php" style="color:#7dcea0;font-weight:700;">Login
+                        here</a></div>
             <?php endif; ?>
 
-            <form method="POST" action="auth.php">
+            <form method="POST" action="register.php">
                 <div class="input-group">
                     <label>USERNAME</label>
                     <input type="text" name="username" placeholder="" autocomplete="username" required>
                 </div>
                 <div class="input-group">
+                    <label>EMAIL <span style="font-size:0.65rem;opacity:0.5;text-transform:none;letter-spacing:0;">(used
+                            for password recovery)</span></label>
+                    <input type="email" name="email" placeholder="" autocomplete="email" required>
+                </div>
+                <div class="input-group">
                     <label>PASSWORD</label>
                     <div class="password-wrapper">
-                        <input type="password" name="password" id="loginPass" placeholder=""
-                            autocomplete="current-password" required>
-                        <button type="button" class="toggle-password" onclick="togglePassword('loginPass',this)"
+                        <input type="password" name="password" id="signupPass" placeholder=""
+                            autocomplete="new-password" required>
+                        <button type="button" class="toggle-password" onclick="togglePassword('signupPass',this)"
                             aria-label="Show password">
                             <svg class="eye-open" viewBox="0 0 24 24" fill="var(--text-primary)">
                                 <path
@@ -475,44 +478,36 @@ $reset = $_GET['reset'] ?? '';
                             </svg>
                         </button>
                     </div>
+                    <div class="password-hint">Min 8 chars, requires letters, numbers & symbols</div>
                 </div>
-                <button type="submit" class="btn-submit">Login</button>
+                <div class="input-group">
+                    <label>CONFIRM PASSWORD</label>
+                    <div class="password-wrapper">
+                        <input type="password" name="confirm_password" id="signupConfirm" placeholder=""
+                            autocomplete="new-password" required>
+                        <button type="button" class="toggle-password" onclick="togglePassword('signupConfirm',this)"
+                            aria-label="Show confirm password">
+                            <svg class="eye-open" viewBox="0 0 24 24" fill="var(--text-primary)">
+                                <path
+                                    d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zm0 12.5c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" />
+                            </svg>
+                            <svg class="eye-closed" style="display:none" viewBox="0 0 24 24" fill="var(--text-primary)">
+                                <path
+                                    d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46A11.8 11.8 0 001 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78l3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <button type="submit" class="btn-submit">Sign Up</button>
             </form>
-            <div class="link-text"><a href="forgot_password.php">Forgot Password?</a></div>
-            <div class="link-text">Don't have an account? <a href="signup.php">Sign Up</a></div>
         </div>
     </div>
 
     <script>
-        // Clock
-        function updateDateTime() {
-            var now = new Date();
-            var months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-            document.getElementById('currentDate').textContent = months[now.getMonth()] + ' ' + now.getDate() + ', ' + now.getFullYear();
-            var h = now.getHours(), m = now.getMinutes(), ap = h >= 12 ? 'PM' : 'AM';
-            h = h % 12 || 12;
-            document.getElementById('currentTime').textContent = h + ':' + (m < 10 ? '0' : '') + m + ' ' + ap;
-        }
+        function updateDateTime() { var now = new Date(); var months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']; document.getElementById('currentDate').textContent = months[now.getMonth()] + ' ' + now.getDate() + ', ' + now.getFullYear(); var h = now.getHours(), m = now.getMinutes(), ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12; document.getElementById('currentTime').textContent = h + ':' + (m < 10 ? '0' : '') + m + ' ' + ap; }
         updateDateTime(); setInterval(updateDateTime, 1000);
-
-        // Particles
-        (function () {
-            var c = document.getElementById('particleContainer');
-            for (var i = 0; i < 12; i++) {
-                var p = document.createElement('div'); p.className = 'particle';
-                var s = Math.random() * 60 + 20;
-                p.style.cssText = 'width:' + s + 'px;height:' + s + 'px;left:' + (Math.random() * 100) + '%;animation-duration:' + (Math.random() * 20 + 15) + 's;animation-delay:' + (Math.random() * 10) + 's';
-                c.appendChild(p);
-            }
-        })();
-
-        // Password toggle
-        function togglePassword(id, btn) {
-            var inp = document.getElementById(id);
-            var eo = btn.querySelector('.eye-open'), ec = btn.querySelector('.eye-closed');
-            if (inp.type === 'password') { inp.type = 'text'; eo.style.display = 'none'; ec.style.display = 'block'; }
-            else { inp.type = 'password'; eo.style.display = 'block'; ec.style.display = 'none'; }
-        }
+        (function () { var c = document.getElementById('particleContainer'); for (var i = 0; i < 12; i++) { var p = document.createElement('div'); p.className = 'particle'; var s = Math.random() * 60 + 20; p.style.cssText = 'width:' + s + 'px;height:' + s + 'px;left:' + (Math.random() * 100) + '%;animation-duration:' + (Math.random() * 20 + 15) + 's;animation-delay:' + (Math.random() * 10) + 's'; c.appendChild(p); } })();
+        function togglePassword(id, btn) { var inp = document.getElementById(id); var eo = btn.querySelector('.eye-open'), ec = btn.querySelector('.eye-closed'); if (inp.type === 'password') { inp.type = 'text'; eo.style.display = 'none'; ec.style.display = 'block'; } else { inp.type = 'password'; eo.style.display = 'block'; ec.style.display = 'none'; } }
     </script>
 </body>
 

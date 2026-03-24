@@ -1,0 +1,29 @@
+/* ============================================================
+   PITS — Background Layer
+   Swap backdrop.png here to change the background site-wide.
+   ============================================================ */
+
+/* ===== Base background image ===== */
+body {
+    background-color: #0a100a;               /* fallback if image fails */
+    background-image: url('textbox/NEW UI/backdrop.png');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+}
+
+/* ===== Dark radial overlay + vignette ===== */
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    /* Deep centre, heavy edges for vignette feel */
+    background: radial-gradient(
+        circle at center,
+        rgba(5, 12, 5, 0.45) 0%,
+        rgba(0, 0, 0, 0.85) 100%
+    );
+    pointer-events: none;
+    z-index: 0;
+}
