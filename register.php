@@ -6,6 +6,7 @@ if (!empty($_SESSION['username'])) {
     header('Location: dashboard.php');
     exit;
 }
+session_write_close();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: signup.php');
@@ -13,27 +14,35 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $username = trim($_POST['username'] ?? '');
+$email    = trim($_POST['email'] ?? '');
 $password = $_POST['password'] ?? '';
-$confirm = $_POST['confirm_password'] ?? '';
+$confirm  = $_POST['confirm_password'] ?? '';
 
-// Sanitize username
+// Sanitize username and rigidly standardise to prevent case-sensitive impersonation
 $username = preg_replace('/[^a-zA-Z0-9_-]/', '', $username);
+$username = strtolower($username);
 
-// Validate username: letters, numbers, underscores, 3-32 chars
+// Validate username
 if (!preg_match('/^[a-zA-Z0-9_]{3,32}$/', $username)) {
-    header('Location: signup.php?error=2');
+    header('Location: signup.php?error=invalid');
     exit;
 }
 
-// Password minimum length
-if (strlen($password) < 6) {
-    header('Location: signup.php?error=3');
+// Validate email
+if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    header('Location: signup.php?error=invalidemail');
+    exit;
+}
+
+// Password complexity enforcement
+if (strlen($password) < 8 || !preg_match('/[A-Za-z]/', $password) || !preg_match('/[0-9]/', $password) || !preg_match('/[^A-Za-z0-9]/', $password)) {
+    header('Location: signup.php?error=weak_password');
     exit;
 }
 
 // Passwords must match
 if ($password !== $confirm) {
-    header('Location: signup.php?error=4');
+    header('Location: signup.php?error=mismatch');
     exit;
 }
 
@@ -41,32 +50,32 @@ $userDir = get_user_dir($username);
 
 // Check if user already exists
 if (is_dir($userDir) && file_exists($userDir . '/.user')) {
-    header('Location: signup.php?error=1');
+    header('Location: signup.php?error=exists');
     exit;
 }
 
-// Create personal directory
-if (!mkdir($userDir, 0775, true) && !is_dir($userDir)) {
-    error_log('PITS register failed: Could not create directory ' . $userDir);
-    header('Location: signup.php?error=5');
-    exit;
-}
+// ── Generate OTP & store pending registration in session ──────────────────
+$otp = generate_otp();
 
-// Save user credentials (file-based)
-$hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-
-$userData = json_encode([
+$_SESSION['pending_reg'] = [
     'username' => $username,
-    'password' => $hashedPassword,
-    'role' => in_array($username, ADMIN_USERS) ? 'admin' : 'collaborator',
-    'created' => date('Y-m-d H:i:s')
-]);
+    'email'    => $email,
+    'password' => password_hash($password, PASSWORD_DEFAULT),
+    'role'     => in_array($username, ADMIN_USERS, true) ? 'admin' : 'collaborator',
+    'created'  => date('Y-m-d H:i:s'),
+    'otp'      => $otp,
+    'otp_at'   => time(),
+    'resends'  => 0,
+    'attempts' => 0,
+];
 
-if (file_put_contents($userDir . '/.user', $userData) === false) {
-    error_log('PITS register failed: Could not write user file');
-    header('Location: signup.php?error=5');
+// ── Send OTP email ────────────────────────────────────────────────────────
+if (!send_otp_email($email, $otp, 'verify')) {
+    // Mail failed — clean up session and report error
+    unset($_SESSION['pending_reg']);
+    header('Location: signup.php?error=mailfail');
     exit;
 }
 
-header('Location: signup.php?success=1');
+header('Location: verify_email.php');
 exit;
