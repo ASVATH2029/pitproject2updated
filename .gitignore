@@ -1,1 +1,21 @@
+# ===== OS junk =====
 .DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# ===== Dev/prototype files =====
+pits-new-ui.html
+pits-auth-ui.html
+pits-ui-share/
+pits-ui-share.zip
+new-ui/
+UI/
+
+# ===== Dev docs (keep SETUP.md, ignore others) =====
+walkthrough.md
+DEPLOYMENT_LOG.md
+
+# ===== Runtime / generated =====
+*.log
+/tmp/
