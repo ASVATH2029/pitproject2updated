@@ -78,11 +78,49 @@ $used_pct = min(100, round(($total_storage / $system_quota) * 100));
         body { min-height: 100vh; color: var(--text-primary); font-family: var(--font-label); overflow-x: hidden; }
 
         .top-bar {
-            position: fixed; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center;
-            padding: 28px 44px; z-index: 100; font-family: var(--font-heading); background: rgba(10, 18, 10, 0.6); backdrop-filter: blur(15px); border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            position: fixed; top: 0; left: 0; right: 0;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 28px 44px; z-index: 100;
+            font-family: var(--font-heading);
+            font-size: 1rem;
+            color: var(--text-cream);
+            transition: all 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+            animation: topSlide 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
         }
-        .top-bar a { color: var(--text-cream); text-decoration: none; margin-left: 20px; }
-        .greeting { font-size: 1rem; color: #a0c88c; }
+        .top-bar .greeting { font-size: 1rem; font-weight: 400; transition: opacity 0.3s ease; }
+        .top-bar .nav-btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+            padding: 8px 18px; background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.10); border-radius: 30px;
+            color: var(--text-cream); text-decoration: none;
+            font-family: var(--font-heading); font-size: 0.82rem; font-weight: 400;
+            line-height: 1; white-space: nowrap;
+            backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+            transition: all 0.25s ease;
+        }
+        .top-bar .nav-btn:hover { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.20); transform: translateY(-1px); }
+
+        .top-bar.scrolled {
+            top: 12px; left: 50%; right: auto;
+            transform: translateX(-50%);
+            width: auto; max-width: 720px;
+            padding: 12px 28px;
+            background: rgba(10, 18, 10, 0.85);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 50px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.04);
+            font-size: 0.85rem; gap: 14px;
+            animation: pillFloat 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+        .top-bar.scrolled .greeting { font-size: 0.82rem; }
+        .top-bar.scrolled .nav-btn { padding: 6px 14px; font-size: 0.78rem; line-height: 1; }
+
+        @keyframes topSlide { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pillFloat {
+            from { opacity: 0; transform: translateX(-50%) translateY(-15px) scale(0.9); filter: blur(4px); }
+            to   { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); filter: blur(0); }
+        }
 
         .page-wrapper {
             position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; padding: 120px 3vw 50px;
@@ -128,6 +166,9 @@ $used_pct = min(100, round(($total_storage / $system_quota) * 100));
         .btn-action:hover { background: rgba(255, 255, 255, 0.2); }
         .btn-danger { background: rgba(231, 76, 60, 0.2); color: #ff9999; }
         .btn-danger:hover { background: rgba(231, 76, 60, 0.4); }
+        .btn-staff { background: rgba(160, 200, 140, 0.15); color: #a0c88c; }
+        .btn-staff:hover { background: rgba(160, 200, 140, 0.3); }
+        .btn-staff.active { background: rgba(160, 200, 140, 0.3); border: 1px solid rgba(160,200,140,0.4); }
 
         @keyframes cardFloat { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
@@ -160,18 +201,37 @@ $used_pct = min(100, round(($total_storage / $system_quota) * 100));
             .stats-grid { grid-template-columns: 1fr; gap: 1rem; }
             .glass-card { padding: 20px 15px; border-radius: 12px; }
             .user-row { flex-direction: column; gap: 15px; text-align: center; }
-            .btn-group { width: 100%; justify-content: space-between; }
+            .btn-group { width: 100%; justify-content: space-between; flex-wrap: wrap; }
+        }
+
+        /* BULK UPLOAD CARD */
+        .bulk-upload-area {
+            background: rgba(15, 22, 14, 0.45);
+            border: 2px dashed rgba(255,255,255,0.1);
+            border-radius: 12px; padding: 2rem; text-align: center;
+            transition: border-color 0.3s, background 0.3s;
+            cursor: pointer;
+        }
+        .bulk-upload-area:hover { border-color: rgba(160,200,140,0.3); background: rgba(15, 22, 14, 0.6); }
+        .bulk-upload-area p { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem; }
+        .bulk-upload-area .hint { font-size: 0.72rem; color: rgba(255,255,255,0.35); }
+        .staff-list-display { margin-top: 1rem; font-size: 0.82rem; color: var(--text-muted); }
+        .staff-list-display .staff-chip {
+            display: inline-block; background: rgba(160,200,140,0.12); color: #a0c88c;
+            padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; margin: 3px 4px;
         }
     </style>
 </head>
 <body>
-    <div class="top-bar">
-        <div class="greeting">COMMAND CENTER ⚡️ PITS</div>
-        <div>
-            <span style="color:var(--text-muted); font-size: 0.8rem; margin-right:15px;"><?= htmlspecialchars($username) ?> (<?= $role ?>)</span>
-            <a href="dashboard.php" style="color:#a0c88c;">Personal Dashboard</a>
-            <a href="logout.php">Logout</a>
+    <div class="top-bar" id="topBar">
+        <span id="adminDate" style="font-size:0.88rem; color:var(--text-muted);"></span>
+        <span class="greeting">Pitsnas - Admin</span>
+        <div style="display:flex; align-items:center; gap:10px;">
+            <a href="staff_dashboard.php" class="nav-btn">Staff Portal</a>
+            <a href="dashboard.php" class="nav-btn">Dashboard</a>
+            <a href="logout.php" class="nav-btn">Logout</a>
         </div>
+        <span id="adminTime" style="font-size:0.88rem; color:var(--text-muted);"></span>
     </div>
 
     <div class="page-wrapper">
@@ -193,8 +253,16 @@ $used_pct = min(100, round(($total_storage / $system_quota) * 100));
         <div class="glass-card">
             <div class="dash-header">
                 <h2>User Directory</h2>
+                <div style="position:relative;">
+                    <input type="text" id="userSearch" placeholder="Search users..." oninput="filterUsers()"
+                        style="padding:10px 18px 10px 38px; background:rgba(25,35,22,0.75); border:1px solid rgba(255,255,255,0.08); border-radius:30px; color:var(--text-cream); font-family:var(--font-heading); font-size:0.85rem; outline:none; width:220px; transition:border-color 0.25s, width 0.3s;"
+                        onfocus="this.style.borderColor='rgba(160,200,140,0.4)'; this.style.width='280px';"
+                        onblur="this.style.borderColor='rgba(255,255,255,0.08)'; this.style.width='220px';">
+                    <svg style="position:absolute; left:12px; top:50%; transform:translateY(-50%); width:16px; height:16px; stroke:var(--text-muted); fill:none; stroke-width:2; pointer-events:none;" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                </div>
             </div>
             <hr class="divider">
+            <div id="noResults" style="display:none; text-align:center; padding:30px 0; color:var(--text-muted); font-family:var(--font-heading); font-size:0.9rem;">No users found.</div>
 
             <div class="user-list">
                 <?php foreach ($users as $u): ?>
@@ -204,11 +272,17 @@ $used_pct = min(100, round(($total_storage / $system_quota) * 100));
                             <span class="user-email"><?= htmlspecialchars($u['email']) ?></span>
                             <div class="user-meta">
                                 <?php if ($u['role'] === 'admin'): ?><span class="user-badge" style="background:rgba(230,150,150,0.15); color:#e69696;">Admin</span><?php endif; ?>
+                                <?php if (is_staff_user($u['username'])): ?><span class="user-badge" style="background:rgba(160,200,140,0.15); color:#a0c88c;">Staff</span><?php endif; ?>
                                 <span><?= formatBytes($u['size']) ?> used</span>
                                 <span>Joined: <?= explode(' ', $u['created'])[0] ?></span>
                             </div>
                         </div>
                         <div class="btn-group">
+                            <?php if (is_staff_user($u['username'])): ?>
+                                <button class="btn-action btn-staff active" onclick="toggleStaff('<?= htmlspecialchars(addslashes($u['username'])) ?>', false)">Remove Staff</button>
+                            <?php else: ?>
+                                <button class="btn-action btn-staff" onclick="toggleStaff('<?= htmlspecialchars(addslashes($u['username'])) ?>', true)">Make Staff</button>
+                            <?php endif; ?>
                             <button class="btn-action" onclick="window.open('dashboard.php?target=<?= urlencode($u['username']) ?>', '_blank')">Override Files</button>
                             <button class="btn-action btn-danger" onclick="deleteUser('<?= htmlspecialchars(addslashes($u['username'])) ?>')">Delete User</button>
                         </div>
@@ -218,6 +292,32 @@ $used_pct = min(100, round(($total_storage / $system_quota) * 100));
                     <div style="text-align:center; padding: 40px; color: var(--text-muted);">No users found on the server.</div>
                 <?php endif; ?>
             </div>
+        </div>
+
+        <!-- STAFF MANAGEMENT CARD -->
+        <div class="glass-card">
+            <div class="dash-header">
+                <h2>Staff Management</h2>
+            </div>
+            <hr class="divider">
+
+            <div class="bulk-upload-area" onclick="triggerBulkUpload()">
+                <p>Upload Staff List</p>
+                <p class="hint">Drop a .txt or .csv file with one username per line to bulk-assign staff roles</p>
+                <input type="file" id="bulkFileInput" accept=".txt,.csv" style="display:none" onchange="handleBulkUpload(this)">
+            </div>
+
+            <?php
+            $staff_list = get_staff_list();
+            if (!empty($staff_list)):
+            ?>
+            <div class="staff-list-display">
+                <strong style="color:var(--text-cream);">Current Staff (<?= count($staff_list) ?>):</strong><br>
+                <?php foreach ($staff_list as $s): ?>
+                    <span class="staff-chip"><?= htmlspecialchars($s) ?></span>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -250,6 +350,100 @@ $used_pct = min(100, round(($total_storage / $system_quota) * 100));
             })
             .catch(function(){ alert('Server error occurred while attempting to delete user.'); });
         }
+
+        // ── Staff Management ──────────────────────────────────────────────────
+        function toggleStaff(username, makeStaff) {
+            var action = makeStaff ? 'promote' : 'demote';
+            var msg = makeStaff ? 'Grant staff privileges to ' + username + '?' : 'Remove staff privileges from ' + username + '?';
+            if (!confirm(msg)) return;
+
+            fetch('staff_manage.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: action, username: username })
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    showToast(username + (makeStaff ? ' is now staff' : ' removed from staff'));
+                    setTimeout(function(){ window.location.reload(); }, 1000);
+                } else {
+                    alert('Error: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(function() { alert('Server error'); });
+        }
+
+        function triggerBulkUpload() {
+            document.getElementById('bulkFileInput').click();
+        }
+
+        function handleBulkUpload(input) {
+            if (!input.files[0]) return;
+            var fd = new FormData();
+            fd.append('staff_file', input.files[0]);
+
+            fetch('staff_manage.php?action=bulk_upload', {
+                method: 'POST',
+                body: fd
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    showToast('Imported ' + data.count + ' staff member(s)');
+                    setTimeout(function(){ window.location.reload(); }, 1500);
+                } else {
+                    alert('Error: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(function() { alert('Upload failed'); });
+            input.value = '';
+        }
+
+        // ── User Search ──────────────────────────────────────────────────────
+        function filterUsers() {
+            var query = document.getElementById('userSearch').value.toLowerCase().trim();
+            var rows = document.querySelectorAll('.user-list .user-row');
+            var visible = 0;
+            rows.forEach(function(row) {
+                var name = row.querySelector('.user-name');
+                var email = row.querySelector('.user-email');
+                var text = (name ? name.textContent : '') + ' ' + (email ? email.textContent : '');
+                if (text.toLowerCase().indexOf(query) !== -1) {
+                    row.style.display = '';
+                    visible++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            document.getElementById('noResults').style.display = visible === 0 ? 'block' : 'none';
+        }
+    </script>
+    <script>
+        // ── Clock ─────────────────────────────────────────────────────────────
+        function updateAdminClock() {
+            var now = new Date();
+            var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+            var dateEl = document.getElementById('adminDate');
+            var timeEl = document.getElementById('adminTime');
+            if (dateEl) dateEl.textContent = months[now.getMonth()] + ' ' + now.getDate() + ', ' + now.getFullYear();
+            if (timeEl) {
+                var h = now.getHours(), m = now.getMinutes(), ap = h >= 12 ? 'PM' : 'AM';
+                h = h % 12 || 12;
+                timeEl.textContent = h + ':' + (m < 10 ? '0' : '') + m + ' ' + ap;
+            }
+        }
+        updateAdminClock(); setInterval(updateAdminClock, 1000);
+
+        // ── Scroll-triggered floating pill nav ─────────────────────────────
+        (function(){
+            var topBar = document.getElementById('topBar');
+            if (!topBar) return;
+            window.addEventListener('scroll', function() {
+                if (window.scrollY > 60) { topBar.classList.add('scrolled'); }
+                else { topBar.classList.remove('scrolled'); }
+            });
+        })();
     </script>
 </body>
 </html>

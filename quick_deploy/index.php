@@ -2,7 +2,10 @@
 require_once __DIR__ . '/config.php';
 session_start();
 if (!empty($_SESSION['username'])) {
-    if (get_role($_SESSION['username']) === 'admin') {
+    $r = get_role($_SESSION['username']);
+    if ($r === 'staff') {
+        header('Location: staff_dashboard.php');
+    } elseif ($r === 'admin') {
         header('Location: admin.php');
     } else {
         header('Location: dashboard.php');
@@ -318,41 +321,6 @@ $reset = $_GET['reset'] ?? '';
             margin-bottom: 1rem;
         }
 
-        /* PARTICLES */
-        .particles {
-            position: fixed;
-            inset: 0;
-            z-index: 0;
-            pointer-events: none;
-            overflow: hidden;
-        }
-
-        .particle {
-            position: absolute;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(160, 200, 140, 0.15), transparent 70%);
-            animation: floatParticle linear infinite;
-        }
-
-        @keyframes floatParticle {
-            0% {
-                transform: translateY(100vh) rotate(0deg);
-                opacity: 0;
-            }
-
-            10% {
-                opacity: 1;
-            }
-
-            90% {
-                opacity: 1;
-            }
-
-            100% {
-                transform: translateY(-10vh) rotate(360deg);
-                opacity: 0;
-            }
-        }
 
         /* RESPONSIVE */
         @media(max-width:768px) {
@@ -425,7 +393,6 @@ $reset = $_GET['reset'] ?? '';
 </head>
 
 <body>
-    <div class="particles" id="particleContainer"></div>
 
     <div class="top-bar">
         <span id="currentDate"></span>
@@ -495,16 +462,6 @@ $reset = $_GET['reset'] ?? '';
         }
         updateDateTime(); setInterval(updateDateTime, 1000);
 
-        // Particles
-        (function () {
-            var c = document.getElementById('particleContainer');
-            for (var i = 0; i < 12; i++) {
-                var p = document.createElement('div'); p.className = 'particle';
-                var s = Math.random() * 60 + 20;
-                p.style.cssText = 'width:' + s + 'px;height:' + s + 'px;left:' + (Math.random() * 100) + '%;animation-duration:' + (Math.random() * 20 + 15) + 's;animation-delay:' + (Math.random() * 10) + 's';
-                c.appendChild(p);
-            }
-        })();
 
         // Password toggle
         function togglePassword(id, btn) {

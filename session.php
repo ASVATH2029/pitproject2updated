@@ -63,6 +63,14 @@ function is_admin(): bool
 }
 
 /**
+ * Returns true if the current user has the staff role.
+ */
+function is_staff(): bool
+{
+    return isset($_SESSION['role']) && $_SESSION['role'] === 'staff';
+}
+
+/**
  * Returns the sanitised username from session.
  */
 function get_username(): string

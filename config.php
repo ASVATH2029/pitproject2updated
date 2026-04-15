@@ -25,6 +25,13 @@ define('BLOCKED_EXTENSIONS', [
 // ── Admin users ────────────────────────────────────────────────────────────
 define('ADMIN_USERS', ['aditya', 'pitsnas']);
 
+// ── Staff feature ──────────────────────────────────────────────────────────
+// Staff list is managed via the admin panel (promote/demote or bulk upload).
+// Stored as a JSON array of usernames in PROJECT_DIR/.staff_users.json
+define('STAFF_USERS_FILE',  PROJECT_DIR . '/.staff_users.json');
+define('STAFF_REQUESTS_DIR', PROJECT_DIR . '/.staff_requests');
+define('STAFF_INBOX_DIR',    PROJECT_DIR . '/.staff_inbox');
+
 // ── Mail / SMTP configuration ──────────────────────────────────────────────
 // Fill in your outgoing mail server details here.
 // For Gmail: host=smtp.gmail.com, port=587, use an App Password (not your real password)
@@ -97,7 +104,7 @@ function get_user_data(string $username): ?array
 
 /**
  * Determines the user's role.
- * Priority: .user file → ADMIN_USERS constant → 'collaborator'
+ * Priority: .user file → ADMIN_USERS constant → staff list → 'collaborator'
  */
 function get_role(string $username): string
 {
@@ -105,7 +112,102 @@ function get_role(string $username): string
     if ($data && isset($data['role'])) {
         return $data['role'];
     }
-    return in_array($username, ADMIN_USERS, true) ? 'admin' : 'collaborator';
+    if (in_array($username, ADMIN_USERS, true)) {
+        return 'admin';
+    }
+    if (is_staff_user($username)) {
+        return 'staff';
+    }
+    return 'collaborator';
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// STAFF HELPERS
+// ══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Returns the list of staff usernames from the JSON file.
+ */
+function get_staff_list(): array
+{
+    if (!file_exists(STAFF_USERS_FILE)) {
+        return [];
+    }
+    $data = json_decode(file_get_contents(STAFF_USERS_FILE), true);
+    return is_array($data) ? $data : [];
+}
+
+/**
+ * Saves the staff list to the JSON file.
+ */
+function save_staff_list(array $list): void
+{
+    // Ensure unique, lowercase, sanitised usernames
+    $list = array_values(array_unique(array_map(function ($u) {
+        return strtolower(preg_replace('/[^a-zA-Z0-9_-]/', '', $u));
+    }, $list)));
+    $list = array_filter($list); // remove empties
+    file_put_contents(STAFF_USERS_FILE, json_encode(array_values($list), JSON_PRETTY_PRINT), LOCK_EX);
+}
+
+/**
+ * Checks if a username is in the staff list.
+ */
+function is_staff_user(string $username): bool
+{
+    return in_array($username, get_staff_list(), true);
+}
+
+/**
+ * Ensures the staff feature directories exist.
+ */
+function ensure_staff_dirs(): void
+{
+    if (!is_dir(STAFF_REQUESTS_DIR)) {
+        mkdir(STAFF_REQUESTS_DIR, 0775, true);
+    }
+    if (!is_dir(STAFF_INBOX_DIR)) {
+        mkdir(STAFF_INBOX_DIR, 0775, true);
+    }
+}
+
+/**
+ * Reads all active request tiles.
+ * Returns an array of request objects sorted by creation date (newest first).
+ */
+function get_all_requests(): array
+{
+    ensure_staff_dirs();
+    $requests = [];
+    $files = glob(STAFF_REQUESTS_DIR . '/*.json');
+    if (!$files) return [];
+    foreach ($files as $file) {
+        $data = json_decode(file_get_contents($file), true);
+        if (is_array($data)) {
+            $data['id'] = pathinfo($file, PATHINFO_FILENAME);
+            $requests[] = $data;
+        }
+    }
+    // Sort newest first
+    usort($requests, function ($a, $b) {
+        return ($b['created_at'] ?? 0) - ($a['created_at'] ?? 0);
+    });
+    return $requests;
+}
+
+/**
+ * Returns requests relevant to a specific student.
+ * A request is relevant if target_students is 'all' or contains the username.
+ */
+function get_student_requests(string $username): array
+{
+    $all = get_all_requests();
+    return array_values(array_filter($all, function ($req) use ($username) {
+        $targets = $req['target_students'] ?? 'all';
+        if ($targets === 'all') return true;
+        if (is_array($targets)) return in_array($username, $targets, true);
+        return false;
+    }));
 }
 
 // ══════════════════════════════════════════════════════════════════════════

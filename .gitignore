@@ -19,3 +19,8 @@ DEPLOYMENT_LOG.md
 # ===== Runtime / generated =====
 *.log
 /tmp/
+
+# ===== Local dev / test data =====
+_data/
+setup_test_users.php
+.gemini/

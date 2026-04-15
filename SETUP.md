@@ -236,9 +236,194 @@ sudo certbot --apache -d yourdomain.com
 |------|-------|
 | Web root | `/var/www/html/` |
 | Login page | `http://<VM_IP>/index.php` |
+| SSO entry point | `http://<VM_IP>/sso/` |
 | Admin user in config | `aditya` |
 | All user files | `/srv/project/<username>/` |
 | Upload limit | 50 MB per file |
 | User quota | 200 MB total |
 | Rate limit | 5 login attempts per 10 min per IP |
 | Session cookie | httponly, samesite=Strict |
+
+---
+
+## 11. LDAP Authentication Setup (Active Directory)
+
+This enables students to log in using their **school Active Directory credentials** via the normal login page (`index.php`). Useful for mobile devices or PCs that are not domain-joined.
+
+### 11.1 Install PHP LDAP Extension
+
+```bash
+sudo apt install php-ldap -y
+sudo systemctl restart apache2
+```
+
+Verify it's loaded:
+```bash
+php -m | grep ldap
+# Should output: ldap
+```
+
+### 11.2 Configure LDAP Settings
+
+Edit `ldap_config.php` in your web root:
+
+```bash
+sudo nano /var/www/html/ldap_config.php
+```
+
+Update these values to match your school's Active Directory:
+
+```php
+define('LDAP_ENABLED', true);                          // ← flip to true
+define('LDAP_HOST',    'ldap://dc1.yourschool.local'); // ← your DC hostname or IP
+define('LDAP_PORT',    389);                           // ← 636 for LDAPS
+define('LDAP_DOMAIN',  'yourschool.local');             // ← your AD domain
+define('LDAP_BASE_DN', 'DC=yourschool,DC=local');       // ← your base DN
+define('LDAP_USE_TLS', false);                         // ← true for STARTTLS
+```
+
+> **Tip:** If using LDAPS (port 636), change LDAP_HOST to `ldaps://dc1.yourschool.local` and LDAP_PORT to `636`. If the DC uses a self-signed certificate, add `TLS_REQCERT never` to `/etc/ldap/ldap.conf`.
+
+### 11.3 Test LDAP Connectivity
+
+From the server, verify you can reach the Domain Controller:
+
+```bash
+# Test network connectivity
+nc -zv dc1.yourschool.local 389
+
+# Test LDAP bind with a known account
+ldapsearch -x -H ldap://dc1.yourschool.local -D "testuser@yourschool.local" -W -b "DC=yourschool,DC=local" "(sAMAccountName=testuser)"
+```
+
+### 11.4 How It Works
+
+The authentication chain in `auth.php` now has three methods, tried in order:
+
+1. **PAM** — Linux system user credentials (primary on server)
+2. **LDAP** — Active Directory bind (`user@domain`) — **NEW**
+3. **File-based** — bcrypt `.user` files (fallback / local dev)
+
+If any method succeeds, the user is logged in. If all fail, they see "Invalid credentials."
+
+---
+
+## 12. Kerberos SSO Setup (Auto-Login for Domain PCs)
+
+This enables **transparent single sign-on** — users on domain-joined Windows PCs navigate to `http://<server>/sso/` and are automatically logged in using their existing Windows session. No password prompt.
+
+> **Note:** This section requires Domain Admin access and is typically performed by the school's IT administrator.
+
+### 12.1 Prerequisites
+
+- The Debian server must be **joined to the Active Directory domain**
+- Time must be synchronised with the Domain Controller (within 5 minutes)
+- Apache must have `mod_auth_gssapi` installed
+
+### 12.2 Join the Domain
+
+```bash
+# Install required packages
+sudo apt install realmd sssd sssd-tools adcli krb5-user libpam-sss libnss-sss -y
+
+# During krb5-user installation, enter your domain: YOURSCHOOL.LOCAL
+
+# Discover and join the domain
+sudo realm discover yourschool.local
+sudo realm join -U administrator yourschool.local
+# You'll be prompted for the Domain Admin password
+
+# Verify
+realm list
+# Should show your domain as 'configured'
+```
+
+### 12.3 Create a Service Principal & Keytab
+
+On the **Domain Controller** (Windows), run:
+
+```powershell
+# Create a service account for the web server
+New-ADUser -Name "pits-svc" -SamAccountName "pits-svc" -UserPrincipalName "HTTP/pitsserver.yourschool.local@YOURSCHOOL.LOCAL" -PasswordNeverExpires $true -Enabled $true
+
+# Set the SPN
+setspn -A HTTP/pitsserver.yourschool.local pits-svc
+
+# Generate the keytab
+ktpass -princ HTTP/pitsserver.yourschool.local@YOURSCHOOL.LOCAL -mapuser pits-svc -pass YourServicePassword -crypto AES256-SHA1 -ptype KRB5_NT_PRINCIPAL -out C:\pits.keytab
+```
+
+Copy `pits.keytab` to the Debian server:
+
+```bash
+# From a machine that can reach both Windows DC and Linux server
+scp pits.keytab aditya@<DEBIAN_IP>:/tmp/
+sudo mv /tmp/pits.keytab /etc/apache2/pits.keytab
+sudo chown www-data:www-data /etc/apache2/pits.keytab
+sudo chmod 600 /etc/apache2/pits.keytab
+```
+
+### 12.4 Install and Configure Apache
+
+```bash
+# Install mod_auth_gssapi
+sudo apt install libapache2-mod-auth-gssapi -y
+sudo a2enmod auth_gssapi
+
+# Copy the PITS SSO config
+sudo cp /var/www/html/apache/pits-sso.conf /etc/apache2/conf-available/
+sudo a2enconf pits-sso
+
+# Reload Apache
+sudo systemctl reload apache2
+```
+
+### 12.5 Configure Client Browsers
+
+For SSO to work, browsers must be configured to send Kerberos tickets to your server. This is usually handled via **Group Policy** on the school's domain:
+
+- **Internet Explorer / Edge:** Add `http://pitsserver.yourschool.local` to the **Local Intranet** zone
+- **Chrome:** Set the `AuthServerAllowlist` policy to `*.yourschool.local`
+- **Firefox:** Set `network.negotiate-auth.trusted-uris` to `.yourschool.local`
+
+### 12.6 Usage
+
+| Access method | URL | What happens |
+|---------------|-----|---------------|
+| Domain PC (auto-login) | `http://<server>/sso/` | Kerberos ticket validated → instant dashboard access |
+| Mobile / External | `http://<server>/` | Normal login page → enter AD username + password |
+
+### 12.7 Test SSO
+
+From a domain-joined Windows PC:
+
+1. Open Chrome or Edge
+2. Navigate to `http://pitsserver.yourschool.local/sso/`
+3. You should be redirected to the dashboard without any login prompt
+4. If prompted for credentials, check the browser's intranet zone settings
+
+From a mobile device or non-domain PC:
+
+1. Navigate to `http://<server>/index.php`
+2. Enter your school AD username and password
+3. You should be logged in via the LDAP authentication method
+
+---
+
+## Troubleshooting
+
+| Problem | Solution |
+|---------|----------|
+| **Login fails** | Check that `pam_auth_helper.sh` is executable and the sudoers rule is in place. Test manually: `echo 'password' \| sudo /var/www/html/pam_auth_helper.sh username` |
+| **Files not showing** | Verify directory permissions — `www-data` must have read access to user home directories |
+| **Upload fails** | Check PHP `upload_max_filesize` in `/etc/php/*/apache2/php.ini` (NOT cli/php.ini) and directory write permissions |
+| **Session issues** | Ensure `/var/lib/php/sessions/` is writable by `www-data`: `sudo chown www-data:www-data /var/lib/php/sessions/` |
+| **Can't access from phone** | Verify UTM is using **Bridged networking** (not NAT). Run `hostname -I` in the VM — your phone must be able to reach that IP |
+| **VM has no IP** | In UTM, double-check the network mode is set to **Bridged** and the correct interface is selected. Run `sudo dhclient` in the VM to request an IP |
+| **Apache not starting** | Check logs: `sudo journalctl -u apache2 --no-pager -n 50` and `sudo cat /var/log/apache2/error.log` |
+| **Permission denied errors** | Run `sudo chown -R www-data:www-data /var/www/html/` again, and check that user home dirs have `www-data` as group |
+| **LDAP login fails** | Verify `php-ldap` is installed (`php -m \| grep ldap`), check `LDAP_ENABLED = true` in `ldap_config.php`, test connectivity: `nc -zv <DC_HOST> 389` |
+| **LDAP slow / hangs** | The DC may be unreachable. Check `LDAP_TIMEOUT` in `ldap_config.php` (default 5s). Ensure DNS resolves the DC hostname. |
+| **SSO not working** | Verify: (1) server is domain-joined (`realm list`), (2) keytab exists at `/etc/apache2/pits.keytab`, (3) `mod_auth_gssapi` is loaded (`apache2ctl -M \| grep gssapi`), (4) browser is in the intranet zone |
+| **SSO 401 error** | Check Apache error log. Common causes: keytab permissions (must be readable by `www-data`), time skew > 5 minutes with DC, wrong SPN in keytab |
+

@@ -831,41 +831,70 @@ if (is_admin() && !empty($_GET['target'])) {
             transition: width 0.2s;
         }
 
-        /* PARTICLES */
-        .particles {
-            position: fixed;
-            inset: 0;
-            z-index: 0;
-            pointer-events: none;
-            overflow: hidden;
+        /* STAFF REQUESTS SECTION */
+        .staff-requests-section {
+            width: 100%; max-width: 1100px;
+            margin-top: 2rem;
+            animation: cardFloat 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+            animation-delay: 0.3s;
         }
-
-        .particle {
-            position: absolute;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(160, 200, 140, 0.15), transparent 70%);
-            animation: floatParticle linear infinite;
+        .staff-requests-section .section-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 1rem;
         }
-
-        @keyframes floatParticle {
-            0% {
-                transform: translateY(100vh) rotate(0deg);
-                opacity: 0;
-            }
-
-            10% {
-                opacity: 1;
-            }
-
-            90% {
-                opacity: 1;
-            }
-
-            100% {
-                transform: translateY(-10vh) rotate(360deg);
-                opacity: 0;
-            }
+        .staff-requests-section .section-header h2 {
+            font-family: var(--font-heading); font-weight: 400; font-size: 1.4rem;
+            color: var(--text-cream);
         }
+        .staff-requests-section .req-count {
+            font-size: 0.78rem; color: rgba(160,200,140,0.9);
+            background: rgba(160,200,140,0.12); padding: 4px 12px; border-radius: 20px;
+        }
+        .staff-tiles-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
+            gap: 1rem;
+        }
+        .staff-tile {
+            background: rgba(15, 22, 14, 0.5); border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 12px; padding: 1.3rem;
+            transition: border-color 0.3s, transform 0.3s;
+            animation: tileSlideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+        .staff-tile:hover { border-color: rgba(160,200,140,0.2); transform: translateY(-2px); }
+        @keyframes tileSlideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+        .staff-tile .st-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.6rem; }
+        .staff-tile .st-title { font-family: var(--font-heading); font-size: 1rem; font-weight: 400; color: var(--text-cream); }
+        .staff-tile .st-from { font-size: 0.72rem; color: #a0c88c; }
+        .staff-tile .st-desc { font-size: 0.8rem; color: var(--text-muted); line-height: 1.4; margin-bottom: 0.8rem; }
+        .staff-tile .st-status { font-size: 0.72rem; margin-bottom: 0.8rem; }
+        .staff-tile .st-status .shared { color: #7dcea0; }
+        .staff-tile .st-status .pending { color: #ffc857; }
+        .staff-tile .st-btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: rgba(160,200,140,0.12); border: 1px solid rgba(160,200,140,0.2);
+            color: rgba(160,200,140,0.9);
+            padding: 6px 14px; border-radius: 8px; font-size: 0.78rem;
+            font-family: var(--font-label); cursor: pointer;
+            transition: all 0.25s;
+        }
+        .staff-tile .st-btn:hover { background: rgba(160,200,140,0.2); border-color: rgba(160,200,140,0.4); }
+        .staff-tile .st-btn svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; }
+        .staff-tile .st-btn.done { background: rgba(125,206,160,0.12); border-color: rgba(125,206,160,0.2); color: #7dcea0; cursor: default; }
+
+        /* SHARE MODAL */
+        .share-modal-overlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.7); backdrop-filter: blur(8px);
+            z-index: 1100; display: none;
+            justify-content: center; align-items: center;
+            opacity: 0; transition: opacity 0.3s;
+        }
+        .share-modal-overlay.active { display: flex; opacity: 1; }
+        .share-modal-overlay.active .modal-window { animation: modalPop 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
+        .share-prog { display: none; margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-muted); }
+        .share-track { width: 100%; height: 3px; background: rgba(255,255,255,0.08); border-radius: 2px; margin-top: 5px; overflow: hidden; }
+        .share-bar { height: 100%; width: 0%; background: linear-gradient(90deg, rgba(160,200,140,0.7), rgba(200,220,160,0.9)); border-radius: 2px; transition: width 0.2s; }
+
 
         /* RESPONSIVE */
         @media(max-width:1200px) {
@@ -926,22 +955,33 @@ if (is_admin() && !empty($_GET['target'])) {
 
         @media(max-width:600px) {
             .top-bar {
-                top: 12px;
-                left: 50%;
-                right: auto;
-                transform: translateX(-50%);
-                width: 90%;
-                max-width: 400px;
-                padding: 10px 20px;
-                background: rgba(10, 18, 10, 0.85);
+                top: 0;
+                left: 0;
+                right: 0;
+                transform: none;
+                width: 100%;
+                max-width: none;
+                padding: 12px 20px;
+                background: rgba(10, 18, 10, 0.9);
                 backdrop-filter: blur(20px);
                 -webkit-backdrop-filter: blur(20px);
-                border: 1px solid rgba(255, 255, 255, 0.08);
-                border-radius: 50px;
-                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.04);
+                border: none;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+                border-radius: 0;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
                 font-size: 0.85rem;
                 justify-content: space-between;
                 gap: 5px;
+            }
+            .top-bar.scrolled {
+                top: 10px;
+                left: 10px;
+                right: 10px;
+                transform: none;
+                width: calc(100% - 20px);
+                max-width: none;
+                border-radius: 50px;
+                border: 1px solid rgba(255, 255, 255, 0.08);
             }
             .page-wrapper {
                 padding: 90px 4vw 60px;
@@ -984,7 +1024,6 @@ if (is_admin() && !empty($_GET['target'])) {
 </head>
 
 <body>
-    <div class="particles" id="particleContainer"></div>
 
     <div class="top-bar" id="topBar">
         <span id="currentDate"></span>
@@ -1022,14 +1061,16 @@ if (is_admin() && !empty($_GET['target'])) {
         <!-- DASHBOARD CARD -->
         <div class="glass-card dashboard-card">
             <div class="dash-header">
-                <div class="greeting">
-                    <?= $target ? "⚠️ ADMIN CONTROL OVERRIDE ⚠️" : "HELLO AGAIN" ?>
+                <div class="greeting" style="font-family:var(--font-heading); font-size:1rem; color:var(--text-cream); font-weight:400; letter-spacing:0.5px;">
+                    <?= $target ? "⚠️ ADMIN CONTROL OVERRIDE ⚠️" : "Hello again" ?>
                 </div>
-                <div>
-                    <span style="color:var(--text-muted); font-size: 0.8rem; margin-right:15px;">
+                <div style="display:flex; align-items:center; gap:14px;">
+                    <span style="color:var(--text-muted); font-size:0.8rem; font-family:var(--font-label);">
                         <?= htmlspecialchars($target ?: $username) ?> <?= $target ? '(Target)' : "($role)" ?>
                     </span>
-                    <a href="logout.php">Logout</a>
+                    <a href="logout.php" style="display:inline-flex; align-items:center; gap:6px; padding:8px 20px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.10); border-radius:var(--radius-pill); color:var(--text-cream); text-decoration:none; font-family:var(--font-label); font-size:0.82rem; font-weight:500; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); transition:all 0.25s ease;"
+                       onmouseover="this.style.background='rgba(255,255,255,0.12)'; this.style.borderColor='rgba(255,255,255,0.20)'; this.style.transform='translateY(-1px)';"
+                       onmouseout="this.style.background='rgba(255,255,255,0.06)'; this.style.borderColor='rgba(255,255,255,0.10)'; this.style.transform='translateY(0)';">Logout</a>
                 </div>
             </div>
             <div class="dash-body">
@@ -1108,6 +1149,34 @@ if (is_admin() && !empty($_GET['target'])) {
                 </div>
             </div>
         </div>
+
+        <!-- STAFF REQUESTS SECTION -->
+        <div class="staff-requests-section" id="staffRequestsSection" style="display:none;">
+            <div class="section-header">
+                <h2>Staff Requests</h2>
+                <span class="req-count" id="reqCount">0 requests</span>
+            </div>
+            <div class="staff-tiles-grid" id="staffTilesGrid">
+            </div>
+        </div>
+    </div>
+
+    <!-- Share File Modal -->
+    <div id="shareModal" class="share-modal-overlay" onclick="closeShareModal()">
+        <div class="modal-window" onclick="event.stopPropagation()">
+            <h2>Share Files</h2>
+            <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:1rem;" id="shareModalDesc">Upload files to share with the requesting staff member.</p>
+            <div style="display:flex;gap:1rem;margin-top:1rem;">
+                <button class="btn-submit" onclick="triggerShareUpload()" style="background:var(--btn-bg); color:var(--btn-text); border:none; border-radius:30px; padding:10px 24px; font-family:var(--font-label); font-weight:600; font-size:0.85rem; cursor:pointer;">Choose File</button>
+                <button class="btn-tool" onclick="closeShareModal()">Cancel</button>
+            </div>
+            <div class="share-prog" id="shareProg">
+                Uploading... <span id="sharePct"></span>
+                <div class="share-track"><div class="share-bar" id="shareBar"></div></div>
+            </div>
+            <div class="status-msg" id="shareStatus" style="margin-top:8px;"></div>
+            <input type="file" id="shareFileInput" style="display:none" onchange="doShareUpload(this)">
+        </div>
     </div>
 
     <!-- Rename modal -->
@@ -1137,16 +1206,6 @@ if (is_admin() && !empty($_GET['target'])) {
         }
         updateDateTime(); setInterval(updateDateTime, 1000);
 
-        // ── Particles ──────────────────────────────────────────────────────────
-        (function () {
-            var c = document.getElementById('particleContainer');
-            for (var i = 0; i < 12; i++) {
-                var p = document.createElement('div'); p.className = 'particle';
-                var s = Math.random() * 60 + 20;
-                p.style.cssText = 'width:' + s + 'px;height:' + s + 'px;left:' + (Math.random() * 100) + '%;animation-duration:' + (Math.random() * 20 + 15) + 's;animation-delay:' + (Math.random() * 10) + 's';
-                c.appendChild(p);
-            }
-        })();
 
         // ── Scroll-based top bar pill ──────────────────────────────────────────
         var topBar = document.getElementById('topBar');
@@ -1324,7 +1383,107 @@ if (is_admin() && !empty($_GET['target'])) {
             if (type === 'success') setTimeout(function () { el.textContent = ''; el.className = 'status-msg'; }, 4000);
         }
 
+        // ══════════════════════════════════════════════════════════════════════
+        // STAFF REQUESTS (Student-Facing)
+        // ══════════════════════════════════════════════════════════════════════
+        var staffRequests = [];
+        var currentShareReqId = '';
+
+        function loadStaffRequests() {
+            fetch('student_requests_api.php')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    staffRequests = data.requests || [];
+                    renderStaffRequests();
+                })
+                .catch(function() {}); // silent fail
+        }
+
+        function renderStaffRequests() {
+            var section = document.getElementById('staffRequestsSection');
+            var grid = document.getElementById('staffTilesGrid');
+            var countEl = document.getElementById('reqCount');
+
+            if (!staffRequests.length) {
+                section.style.display = 'none';
+                return;
+            }
+
+            section.style.display = 'block';
+            countEl.textContent = staffRequests.length + ' request' + (staffRequests.length !== 1 ? 's' : '');
+
+            var html = '';
+            staffRequests.forEach(function(r, i) {
+                html += '<div class="staff-tile" style="animation-delay:' + (i * 0.08).toFixed(2) + 's">';
+                html += '<div class="st-header">';
+                html += '<span class="st-title">' + esc(r.title) + '</span>';
+                html += '<span class="st-from">from ' + esc(r.staff_display || r.staff) + '</span>';
+                html += '</div>';
+                if (r.description) html += '<div class="st-desc">' + esc(r.description) + '</div>';
+                html += '<div class="st-status">';
+                if (r.already_shared) {
+                    html += '<span class="shared">Shared: ' + r.shared_files.map(function(f){ return esc(f); }).join(', ') + '</span>';
+                } else {
+                    html += '<span class="pending">Pending — not yet shared</span>';
+                }
+                html += '</div>';
+                if (r.already_shared) {
+                    html += '<button class="st-btn done"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>Shared</button>';
+                    html += ' <button class="st-btn" onclick="openShareModal(\'' + esc(r.id) + '\', \'' + esc(r.title) + '\')" style="margin-left:6px;"><svg viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>Add More</button>';
+                } else {
+                    html += '<button class="st-btn" onclick="openShareModal(\'' + esc(r.id) + '\', \'' + esc(r.title) + '\')"><svg viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>Share Files</button>';
+                }
+                html += '</div>';
+            });
+            grid.innerHTML = html;
+        }
+
+        // ── Share Modal ────────────────────────────────────────────────────────
+        function openShareModal(reqId, title) {
+            currentShareReqId = reqId;
+            document.getElementById('shareModalDesc').textContent = 'Upload files for: ' + title;
+            document.getElementById('shareStatus').textContent = '';
+            document.getElementById('shareProg').style.display = 'none';
+            document.getElementById('shareModal').classList.add('active');
+        }
+        function closeShareModal() { document.getElementById('shareModal').classList.remove('active'); currentShareReqId = ''; }
+        function triggerShareUpload() { document.getElementById('shareFileInput').click(); }
+
+        function doShareUpload(input) {
+            if (!input.files[0] || !currentShareReqId) return;
+            var fd = new FormData();
+            fd.append('file', input.files[0]);
+            fd.append('request_id', currentShareReqId);
+            var prog = document.getElementById('shareProg');
+            var bar = document.getElementById('shareBar');
+            var pct = document.getElementById('sharePct');
+            var status = document.getElementById('shareStatus');
+            prog.style.display = 'block'; bar.style.width = '0%';
+            status.textContent = 'Uploading...';
+            status.className = 'status-msg';
+
+            var xhr = new XMLHttpRequest();
+            xhr.upload.onprogress = function(e) { if (e.lengthComputable) { var p = Math.round(e.loaded / e.total * 100); bar.style.width = p + '%'; pct.textContent = p + '%'; } };
+            xhr.onload = function() {
+                prog.style.display = 'none';
+                try {
+                    var d = JSON.parse(xhr.responseText);
+                    if (d.error) { status.textContent = d.error; status.className = 'status-msg error'; }
+                    else {
+                        status.textContent = 'File shared successfully!';
+                        status.className = 'status-msg success';
+                        setTimeout(function() { closeShareModal(); loadStaffRequests(); }, 1500);
+                    }
+                } catch(e) { status.textContent = 'Upload error'; status.className = 'status-msg error'; }
+                input.value = '';
+            };
+            xhr.onerror = function() { prog.style.display = 'none'; status.textContent = 'Upload failed'; status.className = 'status-msg error'; };
+            xhr.open('POST', 'student_share.php');
+            xhr.send(fd);
+        }
+
         loadFiles();
+        loadStaffRequests();
     </script>
 </body>
 

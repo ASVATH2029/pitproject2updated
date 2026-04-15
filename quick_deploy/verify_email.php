@@ -190,18 +190,6 @@ $remaining_secs = max(0, OTP_EXPIRY_SECS - (time() - $otp_at));
         }
         .back-link:hover { color: var(--text-primary); }
 
-        .particles { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
-        .particle {
-            position: absolute; border-radius: 50%;
-            background: radial-gradient(circle, rgba(160,200,140,0.15), transparent 70%);
-            animation: floatParticle linear infinite;
-        }
-        @keyframes floatParticle {
-            0%   { transform: translateY(100vh) rotate(0deg);   opacity: 0; }
-            10%  { opacity: 1; }
-            90%  { opacity: 1; }
-            100% { transform: translateY(-10vh) rotate(360deg); opacity: 0; }
-        }
 
         @media(max-width:600px) {
             .top-bar {
@@ -231,7 +219,6 @@ $remaining_secs = max(0, OTP_EXPIRY_SECS - (time() - $otp_at));
 </head>
 
 <body>
-    <div class="particles" id="particleContainer"></div>
 
     <div class="top-bar">
         <span id="currentDate"></span>
@@ -297,16 +284,6 @@ $remaining_secs = max(0, OTP_EXPIRY_SECS - (time() - $otp_at));
         }
         updateDateTime(); setInterval(updateDateTime, 1000);
 
-        // ── Particles ─────────────────────────────────────────────────────
-        (function () {
-            var c = document.getElementById('particleContainer');
-            for (var i = 0; i < 12; i++) {
-                var p = document.createElement('div'); p.className = 'particle';
-                var s = Math.random() * 60 + 20;
-                p.style.cssText = 'width:' + s + 'px;height:' + s + 'px;left:' + (Math.random() * 100) + '%;animation-duration:' + (Math.random() * 20 + 15) + 's;animation-delay:' + (Math.random() * 10) + 's';
-                c.appendChild(p);
-            }
-        })();
 
         // ── OTP digit inputs — auto-advance & paste support ───────────────
         var digits = document.querySelectorAll('.otp-row input[type=text]');

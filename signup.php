@@ -307,40 +307,6 @@ $success = $_GET['success'] ?? '';
             border: 1px solid rgba(125, 206, 160, 0.25);
         }
 
-        .particles {
-            position: fixed;
-            inset: 0;
-            z-index: 0;
-            pointer-events: none;
-            overflow: hidden;
-        }
-
-        .particle {
-            position: absolute;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(160, 200, 140, 0.15), transparent 70%);
-            animation: floatParticle linear infinite;
-        }
-
-        @keyframes floatParticle {
-            0% {
-                transform: translateY(100vh) rotate(0deg);
-                opacity: 0;
-            }
-
-            10% {
-                opacity: 1;
-            }
-
-            90% {
-                opacity: 1;
-            }
-
-            100% {
-                transform: translateY(-10vh) rotate(360deg);
-                opacity: 0;
-            }
-        }
 
         @media(max-width:768px) {
             .top-bar {
@@ -410,7 +376,6 @@ $success = $_GET['success'] ?? '';
 </head>
 
 <body>
-    <div class="particles" id="particleContainer"></div>
 
     <div class="top-bar">
         <span id="currentDate"></span>
@@ -506,7 +471,6 @@ $success = $_GET['success'] ?? '';
     <script>
         function updateDateTime() { var now = new Date(); var months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']; document.getElementById('currentDate').textContent = months[now.getMonth()] + ' ' + now.getDate() + ', ' + now.getFullYear(); var h = now.getHours(), m = now.getMinutes(), ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12; document.getElementById('currentTime').textContent = h + ':' + (m < 10 ? '0' : '') + m + ' ' + ap; }
         updateDateTime(); setInterval(updateDateTime, 1000);
-        (function () { var c = document.getElementById('particleContainer'); for (var i = 0; i < 12; i++) { var p = document.createElement('div'); p.className = 'particle'; var s = Math.random() * 60 + 20; p.style.cssText = 'width:' + s + 'px;height:' + s + 'px;left:' + (Math.random() * 100) + '%;animation-duration:' + (Math.random() * 20 + 15) + 's;animation-delay:' + (Math.random() * 10) + 's'; c.appendChild(p); } })();
         function togglePassword(id, btn) { var inp = document.getElementById(id); var eo = btn.querySelector('.eye-open'), ec = btn.querySelector('.eye-closed'); if (inp.type === 'password') { inp.type = 'text'; eo.style.display = 'none'; ec.style.display = 'block'; } else { inp.type = 'password'; eo.style.display = 'block'; ec.style.display = 'none'; } }
     </script>
 </body>

@@ -4,7 +4,10 @@
  *
  * Authentication order:
  *   1. PAM via pam_auth_helper.sh  (Linux system users — primary on server)
- *   2. File-based bcrypt .user file (fallback / local dev)
+ *   2. LDAP bind against Active Directory (school domain credentials)
+ *   3. File-based bcrypt .user file (fallback / local dev)
+ *
+ * For transparent Kerberos SSO (domain-joined PCs), see sso_auth.php.
  *
  * On success: sets session, redirects to dashboard.php
  * On failure: redirects to index.php?error=<code>
@@ -13,6 +16,7 @@
  */
 
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/ldap_config.php';
 session_start();
 
 // Already logged in
@@ -89,7 +93,33 @@ if (is_executable($helper)) {
     }
 }
 
-// --- Method 2: File-based bcrypt .user (fallback / dev mode) ---------------
+// --- Method 2: LDAP bind against Active Directory -------------------------
+// Attempts to authenticate by binding to the school's AD server using the
+// user's credentials. Gated behind LDAP_ENABLED and php-ldap availability.
+if (!$authenticated && LDAP_ENABLED && function_exists('ldap_connect')) {
+    $ldap = @ldap_connect(LDAP_HOST, LDAP_PORT);
+    if ($ldap) {
+        ldap_set_option($ldap, LDAP_OPT_PROTOCOL_VERSION, 3);
+        ldap_set_option($ldap, LDAP_OPT_REFERRALS, 0);
+        ldap_set_option($ldap, LDAP_OPT_NETWORK_TIMEOUT, LDAP_TIMEOUT);
+
+        if (LDAP_USE_TLS) {
+            @ldap_start_tls($ldap);
+        }
+
+        // Bind using user@domain format (Active Directory UPN)
+        $bind_dn = $username . '@' . LDAP_DOMAIN;
+
+        if (@ldap_bind($ldap, $bind_dn, $password)) {
+            $authenticated = true;
+            $role = get_role($username);
+        }
+
+        @ldap_unbind($ldap);
+    }
+}
+
+// --- Method 3: File-based bcrypt .user (fallback / dev mode) ---------------
 if (!$authenticated) {
     $userData = get_user_data($username);
 
@@ -125,7 +155,9 @@ $_SESSION['login_time'] = time();
 
 ensure_user_dir($username); // Create /srv/project/<user>/ if not exists
 
-if ($role === 'admin') {
+if ($role === 'staff') {
+    header('Location: staff_dashboard.php');
+} elseif ($role === 'admin') {
     header('Location: admin.php');
 } else {
     header('Location: dashboard.php');
