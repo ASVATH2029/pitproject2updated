@@ -6,6 +6,17 @@ Hey guys. This is a completely overhauled, highly optimized, wildly secure Netwo
 
 ---
 
+### 📚 Documentation & Guides
+
+| Document | Description |
+|:---------|:------------|
+| [**SETUP.md**](SETUP.md) | Full server installation & deployment walkthrough — Apache, PHP, Ngrok, PHPMailer, Kerberos SSO |
+| [**LDAP_SETUP.md**](LDAP_SETUP.md) | Step-by-step guide to enable Active Directory (LDAP) authentication & Kerberos SSO |
+| [**DEPLOYMENT_LOG.md**](DEPLOYMENT_LOG.md) | Chronological log of all deployment sessions, server changes & troubleshooting notes |
+| [**LICENSE**](LICENSE) | Proprietary license — all rights reserved |
+
+---
+
 ## 1. Live Access & Network Topology
 
 Live Production Status: ONLINE
