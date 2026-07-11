@@ -19,9 +19,6 @@ if (empty($filenames) || !is_array($filenames)) {
 }
 
 $target_user = get_username();
-if (is_admin() && !empty($_GET['target'])) {
-    $target_user = preg_replace('/[^a-zA-Z0-9_-]/', '', strtolower($_GET['target']));
-}
 $user_dir = get_user_dir($target_user);
 $deleted = [];
 $failed = [];

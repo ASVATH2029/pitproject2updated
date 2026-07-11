@@ -20,10 +20,6 @@ if (empty($old_name) || empty($new_name)) {
 }
 
 $target_user = get_username();
-if (is_admin() && !empty($_GET['target'])) {
-    $target_user = preg_replace('/[^a-zA-Z0-9_-]/', '', strtolower($_GET['target']));
-}
-
 $user_dir = get_user_dir($target_user);
 
 $safe_old = sanitize_filename($old_name);

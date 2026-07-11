@@ -16,9 +16,6 @@ if ($safe !== $filename || strpos($filename, '..') !== false) {
 }
 
 $target_user = get_username();
-if (is_admin() && !empty($_GET['target'])) {
-    $target_user = preg_replace('/[^a-zA-Z0-9_-]/', '', strtolower($_GET['target']));
-}
 $user_dir = get_user_dir($target_user);
 $filepath = $user_dir . '/' . $safe;
 

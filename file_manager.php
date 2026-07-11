@@ -4,9 +4,6 @@ require_login();
 session_write_close();
 
 $target_user = get_username();
-if (is_admin() && !empty($_GET['target'])) {
-    $target_user = preg_replace('/[^a-zA-Z0-9_-]/', '', strtolower($_GET['target']));
-}
 $user_dir = ensure_user_dir($target_user);
 
 header('Content-Type: application/json');

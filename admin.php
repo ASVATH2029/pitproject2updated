@@ -189,6 +189,31 @@ $used_pct = min(100, round(($total_storage / $system_quota) * 100));
         .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: rgba(40,55,40,0.9); padding: 12px 24px; border-radius: 30px; color: white; font-size: 0.9rem; border: 1px solid rgba(160,200,140,0.3); opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 1000;}
         .toast.show { opacity: 1; }
 
+        /* Shared Folder Viewer Modal (read-only) */
+        .modal-overlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.7); backdrop-filter: blur(8px);
+            z-index: 1000; display: none;
+            justify-content: center; align-items: center;
+            opacity: 0; transition: opacity 0.3s;
+        }
+        .modal-overlay.active { display: flex; opacity: 1; }
+        .modal-window {
+            background: rgba(15, 25, 15, 0.95);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-card);
+            padding: 2rem; width: 90%; max-width: 520px;
+            max-height: 82vh; overflow-y: auto;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+        }
+        .shared-file-row {
+            display: flex; justify-content: space-between; align-items: center;
+            gap: 10px; padding: 10px 14px; border-radius: 8px;
+            background: rgba(255,255,255,0.03); margin-bottom: 8px;
+        }
+        .shared-file-name { font-size: 0.85rem; color: var(--text-cream); word-break: break-all; }
+        .shared-file-size { font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; }
+
         @media(max-width:768px) {
             .top-bar { padding: 16px 20px; }
             .top-bar .topbar-meta { display: none; }
@@ -310,7 +335,7 @@ $used_pct = min(100, round(($total_storage / $system_quota) * 100));
                             </div>
                         </div>
                         <div class="btn-group">
-                            <button class="btn-action" onclick="window.open('dashboard.php?target=<?= urlencode($u['username']) ?>', '_blank')">Override Files</button>
+                            <button class="btn-action" onclick="viewSharedFolder('<?= htmlspecialchars(addslashes($u['username'])) ?>')">View Shared Folder</button>
                             <button class="btn-action btn-danger" onclick="deleteUser('<?= htmlspecialchars(addslashes($u['username'])) ?>')">Delete User</button>
                         </div>
                     </div>
@@ -341,7 +366,7 @@ $used_pct = min(100, round(($total_storage / $system_quota) * 100));
                             </div>
                         </div>
                         <div class="btn-group">
-                            <button class="btn-action" onclick="window.open('dashboard.php?target=<?= urlencode($u['username']) ?>', '_blank')">Override Files</button>
+                            <button class="btn-action" onclick="viewSharedFolder('<?= htmlspecialchars(addslashes($u['username'])) ?>')">View Shared Folder</button>
                             <button class="btn-action btn-danger" onclick="deleteUser('<?= htmlspecialchars(addslashes($u['username'])) ?>')">Delete User</button>
                         </div>
                     </div>
@@ -382,6 +407,20 @@ $used_pct = min(100, round(($total_storage / $system_quota) * 100));
         </div>
     </div>
 
+    <!-- SHARED FOLDER VIEWER (read-only: view/download only, no upload/delete/rename) -->
+    <div id="sharedModal" class="modal-overlay" onclick="closeSharedModal()">
+        <div class="modal-window" onclick="event.stopPropagation()" style="max-width:640px;">
+            <div class="dash-header" style="margin-bottom:1rem;">
+                <h2 id="sharedModalTitle" style="font-size:1.3rem;">Shared Folder</h2>
+                <button class="btn-action" onclick="closeSharedModal()">Close</button>
+            </div>
+            <hr class="divider">
+            <div id="sharedModalBody">
+                <div style="text-align:center; padding:30px 0; color:var(--text-muted);">Loading…</div>
+            </div>
+        </div>
+    </div>
+
     <div id="toast" class="toast">Action completed.</div>
 
     <script>
@@ -390,6 +429,44 @@ $used_pct = min(100, round(($total_storage / $system_quota) * 100));
             t.innerText = msg;
             t.classList.add('show');
             setTimeout(function(){ t.classList.remove('show'); }, 3000);
+        }
+
+        function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+        function fmtBytes(b) { if (b < 1024) return b + ' B'; if (b < 1048576) return (b / 1024).toFixed(1) + ' KB'; return (b / 1048576).toFixed(1) + ' MB'; }
+
+        // ── Shared Folder Viewer (view/download only — no upload, delete, or
+        // access to personal files; the "Override Files" concept is gone) ────
+        function viewSharedFolder(username) {
+            var modal = document.getElementById('sharedModal');
+            var body = document.getElementById('sharedModalBody');
+            document.getElementById('sharedModalTitle').textContent = 'Shared Folder — ' + username;
+            body.innerHTML = '<div style="text-align:center; padding:30px 0; color:var(--text-muted);">Loading…</div>';
+            modal.classList.add('active');
+
+            fetch('shared_api.php?action=list&target=' + encodeURIComponent(username))
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.error) { body.innerHTML = '<div style="text-align:center; padding:20px 0; color:var(--text-muted);">' + esc(data.error) + '</div>'; return; }
+                    var files = data.files || [];
+                    if (!files.length) {
+                        body.innerHTML = '<div style="text-align:center; padding:20px 0; color:var(--text-muted);">No shared files for ' + esc(data.owner) + '.</div>';
+                        return;
+                    }
+                    var html = '';
+                    files.forEach(function(f) {
+                        html += '<div class="shared-file-row">';
+                        html += '<span class="shared-file-name">' + esc(f.name) + '</span>';
+                        html += '<span class="shared-file-size">' + fmtBytes(f.size) + '</span>';
+                        html += '<button class="btn-action" onclick="window.open(\'shared_api.php?action=download&target=' + encodeURIComponent(data.owner) + '&file=' + encodeURIComponent(f.name) + '\', \'_blank\')">Download</button>';
+                        html += '</div>';
+                    });
+                    body.innerHTML = html;
+                })
+                .catch(function() { body.innerHTML = '<div style="text-align:center; padding:20px 0; color:var(--text-muted);">Failed to load shared folder.</div>'; });
+        }
+
+        function closeSharedModal() {
+            document.getElementById('sharedModal').classList.remove('active');
         }
 
         function deleteUser(username) {

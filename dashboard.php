@@ -4,11 +4,6 @@ require_login();
 session_write_close();
 $username = get_username();
 $role = is_admin() ? 'Admin' : (is_staff() ? 'Staff' : 'Collaborator');
-
-$target = '';
-if (is_admin() && !empty($_GET['target'])) {
-    $target = preg_replace('/[^a-zA-Z0-9_-]/', '', strtolower($_GET['target']));
-}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -1219,11 +1214,11 @@ if (is_admin() && !empty($_GET['target'])) {
         <div class="glass-card dashboard-card">
             <div class="dash-header">
                 <div class="greeting" style="font-family:var(--font-heading); font-size:1rem; color:var(--text-cream); font-weight:400; letter-spacing:0.5px;">
-                    <?= $target ? "⚠️ ADMIN CONTROL OVERRIDE ⚠️" : "Hello again" ?>
+                    Hello again
                 </div>
                 <div style="display:flex; align-items:center; gap:14px;">
                     <span style="color:var(--text-muted); font-size:0.8rem; font-family:var(--font-label);">
-                        <?= htmlspecialchars($target ?: $username) ?> <?= $target ? '(Target)' : "($role)" ?>
+                        <?= htmlspecialchars($username) ?> (<?= htmlspecialchars($role) ?>)
                     </span>
                     <a href="logout.php" style="display:inline-flex; align-items:center; gap:6px; padding:8px 20px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.10); border-radius:var(--radius-pill); color:var(--text-cream); text-decoration:none; font-family:var(--font-label); font-size:0.82rem; font-weight:500; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); transition:all 0.25s ease;"
                        onmouseover="this.style.background='rgba(255,255,255,0.12)'; this.style.borderColor='rgba(255,255,255,0.20)'; this.style.transform='translateY(-1px)';"
@@ -1395,9 +1390,6 @@ if (is_admin() && !empty($_GET['target'])) {
     </div>
 
     <script>
-        // ── Admin "view as" target (empty string for normal self-view) ──────────
-        var TARGET = <?= json_encode($target) ?>;
-
         // ── Clock ──────────────────────────────────────────────────────────────
         function updateDateTime() {
             var now = new Date();
@@ -1543,7 +1535,7 @@ if (is_admin() && !empty($_GET['target'])) {
                 input.value = '';
             };
             xhr.onerror = function () { prog.style.display = 'none'; showStatus('Upload failed', 'error'); };
-            xhr.open('POST', 'upload.php' + (TARGET ? '?target=' + TARGET : '')); xhr.send(fd);
+            xhr.open('POST', 'upload.php'); xhr.send(fd);
         }
 
         // ── Delete ─────────────────────────────────────────────────────────────
@@ -1552,7 +1544,7 @@ if (is_admin() && !empty($_GET['target'])) {
             if (!checked.length) { showStatus('Select files to delete first', 'error'); return; }
             if (!confirm('Delete ' + checked.length + ' file(s)? This cannot be undone.')) return;
             var names = Array.from(checked).map(function (cb) { return cb.dataset.name; });
-            fetch('delete.php' + (TARGET ? '?target=' + TARGET : ''), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ files: names }) })
+            fetch('delete.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ files: names }) })
                 .then(function (r) { return r.json(); })
                 .then(function (d) {
                     if (d.deleted && d.deleted.length) showStatus('✓ Deleted ' + d.deleted.length + ' file(s)', 'success');
@@ -1566,7 +1558,7 @@ if (is_admin() && !empty($_GET['target'])) {
         function downloadSelected() {
             var checked = document.querySelectorAll('.file-checkbox:checked');
             if (!checked.length) { showStatus('Select a file to download first', 'error'); return; }
-            checked.forEach(function (cb) { window.open('download.php?file=' + encodeURIComponent(cb.dataset.name) + (TARGET ? '&target=' + TARGET : ''), '_blank'); });
+            checked.forEach(function (cb) { window.open('download.php?file=' + encodeURIComponent(cb.dataset.name), '_blank'); });
         }
 
         // ── Rename ────────────────────────────────────────────────────────────
@@ -1574,7 +1566,7 @@ if (is_admin() && !empty($_GET['target'])) {
         function doRename() {
             var newName = document.getElementById('renameInput').value.trim();
             if(!newName || newName === renameTarget) { closeModal('renameModal'); return; }
-            fetch('rename.php' + (TARGET ? '?target=' + TARGET : ''), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ old_name: renameTarget, new_name: newName }) })
+            fetch('rename.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ old_name: renameTarget, new_name: newName }) })
                 .then(function (r) { return r.json(); })
                 .then(function (d) {
                     closeModal('renameModal');

@@ -73,9 +73,6 @@ if (in_array($ext, BLOCKED_EXTENSIONS, true)) {
 
 // ── Quota check ─────────────────────────────────────────────────────────────
 $target_user = get_username();
-if (is_admin() && !empty($_GET['target'])) {
-    $target_user = preg_replace('/[^a-zA-Z0-9_-]/', '', strtolower($_GET['target']));
-}
 $user_dir = ensure_user_dir($target_user);
 $userDir = $user_dir;
 $current_size = dir_size($user_dir);
