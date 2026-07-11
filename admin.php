@@ -39,7 +39,16 @@ foreach ($items as $item) {
     }
 }
 
-function formatBytes($bytes, $precision = 2) { 
+// Split into students (collaborators) and staff so staff never mix into
+// the student roster — they're managed in their own directory instead.
+$student_users = array_values(array_filter($users, function ($u) {
+    return $u['role'] !== 'admin' && !is_staff_user($u['username']);
+}));
+$staff_users = array_values(array_filter($users, function ($u) {
+    return $u['role'] !== 'admin' && is_staff_user($u['username']);
+}));
+
+function formatBytes($bytes, $precision = 2) {
     $units = array('B', 'KB', 'MB', 'GB', 'TB'); 
     $bytes = max($bytes, 0); 
     $pow = floor(($bytes ? log($bytes) : 0) / log(1024)); 
@@ -280,9 +289,9 @@ $used_pct = min(100, round(($total_storage / $system_quota) * 100));
 
         <div class="glass-card">
             <div class="dash-header">
-                <h2>User Directory</h2>
+                <h2>Student Directory</h2>
                 <div style="position:relative;">
-                    <input type="text" id="userSearch" placeholder="Search users..." oninput="filterUsers()"
+                    <input type="text" id="userSearch" placeholder="Search students..." oninput="filterUsers()"
                         style="padding:10px 18px 10px 38px; background:rgba(25,35,22,0.75); border:1px solid rgba(255,255,255,0.08); border-radius:30px; color:var(--text-cream); font-family:var(--font-heading); font-size:0.85rem; outline:none; width:220px; transition:border-color 0.25s, width 0.3s;"
                         onfocus="this.style.borderColor='rgba(160,200,140,0.4)'; this.style.width='280px';"
                         onblur="this.style.borderColor='rgba(255,255,255,0.08)'; this.style.width='220px';">
@@ -292,32 +301,58 @@ $used_pct = min(100, round(($total_storage / $system_quota) * 100));
             <hr class="divider">
             <div id="noResults" style="display:none; text-align:center; padding:30px 0; color:var(--text-muted); font-family:var(--font-heading); font-size:0.9rem;">No users found.</div>
 
-            <div class="user-list">
-                <?php foreach ($users as $u): ?>
+            <div class="user-list" id="studentList">
+                <?php foreach ($student_users as $u): ?>
                     <div class="user-row">
                         <div class="user-info">
                             <span class="user-name"><?= htmlspecialchars($u['username']) ?></span>
                             <span class="user-email"><?= htmlspecialchars($u['email']) ?></span>
                             <div class="user-meta">
-                                <?php if ($u['role'] === 'admin'): ?><span class="user-badge" style="background:rgba(230,150,150,0.15); color:#e69696;">Admin</span><?php endif; ?>
-                                <?php if (is_staff_user($u['username'])): ?><span class="user-badge" style="background:rgba(160,200,140,0.15); color:#a0c88c;">Staff</span><?php endif; ?>
                                 <span><?= formatBytes($u['size']) ?> used <span style="color:var(--text-muted); font-size:0.72rem;">(<?= formatBytes($u['personal_size']) ?> personal &middot; <?= formatBytes($u['shared_size']) ?> shared)</span></span>
                                 <span>Joined: <?= explode(' ', $u['created'])[0] ?></span>
                             </div>
                         </div>
                         <div class="btn-group">
-                            <?php if (is_staff_user($u['username'])): ?>
-                                <button class="btn-action btn-staff active" onclick="toggleStaff('<?= htmlspecialchars(addslashes($u['username'])) ?>', false)">Remove Staff</button>
-                            <?php else: ?>
-                                <button class="btn-action btn-staff" onclick="toggleStaff('<?= htmlspecialchars(addslashes($u['username'])) ?>', true)">Make Staff</button>
-                            <?php endif; ?>
+                            <button class="btn-action btn-staff" onclick="toggleStaff('<?= htmlspecialchars(addslashes($u['username'])) ?>', true)">Make Staff</button>
                             <button class="btn-action" onclick="window.open('dashboard.php?target=<?= urlencode($u['username']) ?>', '_blank')">Override Files</button>
                             <button class="btn-action btn-danger" onclick="deleteUser('<?= htmlspecialchars(addslashes($u['username'])) ?>')">Delete User</button>
                         </div>
                     </div>
                 <?php endforeach; ?>
-                <?php if (empty($users)): ?>
-                    <div style="text-align:center; padding: 40px; color: var(--text-muted);">No users found on the server.</div>
+                <?php if (empty($student_users)): ?>
+                    <div style="text-align:center; padding: 40px; color: var(--text-muted);">No students found on the server.</div>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <!-- STAFF DIRECTORY CARD (separate from students) -->
+        <div class="glass-card">
+            <div class="dash-header">
+                <h2>Staff Directory</h2>
+            </div>
+            <hr class="divider">
+
+            <div class="user-list">
+                <?php foreach ($staff_users as $u): ?>
+                    <div class="user-row">
+                        <div class="user-info">
+                            <span class="user-name"><?= htmlspecialchars($u['username']) ?></span>
+                            <span class="user-email"><?= htmlspecialchars($u['email']) ?></span>
+                            <div class="user-meta">
+                                <span class="user-badge" style="background:rgba(160,200,140,0.15); color:#a0c88c;">Staff</span>
+                                <span><?= formatBytes($u['size']) ?> used <span style="color:var(--text-muted); font-size:0.72rem;">(<?= formatBytes($u['personal_size']) ?> personal &middot; <?= formatBytes($u['shared_size']) ?> shared)</span></span>
+                                <span>Joined: <?= explode(' ', $u['created'])[0] ?></span>
+                            </div>
+                        </div>
+                        <div class="btn-group">
+                            <button class="btn-action btn-staff active" onclick="toggleStaff('<?= htmlspecialchars(addslashes($u['username'])) ?>', false)">Remove Staff</button>
+                            <button class="btn-action" onclick="window.open('dashboard.php?target=<?= urlencode($u['username']) ?>', '_blank')">Override Files</button>
+                            <button class="btn-action btn-danger" onclick="deleteUser('<?= htmlspecialchars(addslashes($u['username'])) ?>')">Delete User</button>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+                <?php if (empty($staff_users)): ?>
+                    <div style="text-align:center; padding: 40px; color: var(--text-muted);">No staff accounts yet.</div>
                 <?php endif; ?>
             </div>
         </div>
@@ -434,7 +469,7 @@ $used_pct = min(100, round(($total_storage / $system_quota) * 100));
         // ── User Search ──────────────────────────────────────────────────────
         function filterUsers() {
             var query = document.getElementById('userSearch').value.toLowerCase().trim();
-            var rows = document.querySelectorAll('.user-list .user-row');
+            var rows = document.querySelectorAll('#studentList .user-row');
             var visible = 0;
             rows.forEach(function(row) {
                 var name = row.querySelector('.user-name');
