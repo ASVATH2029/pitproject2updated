@@ -57,13 +57,13 @@ function formatBytes($bytes, $precision = 2) {
     return round($bytes, $precision) . ' ' . $units[$pow]; 
 }
 
-// "Utilization" is real disk usage on the volume backing PROJECT_DIR, not a
-// per-student-quota projection — otherwise a single registered user would
-// misleadingly show near-full utilization against their own 200MB cap.
-$disk_total = @disk_total_space(PROJECT_DIR) ?: 1;
-$disk_free = @disk_free_space(PROJECT_DIR) ?: 0;
-$disk_used = $disk_total - $disk_free;
-$used_pct = min(100, round(($disk_used / $disk_total) * 100));
+// Dedicated to the app's own document storage — total bytes uploaded by
+// everyone (personal + shared files) — against the combined quota capacity
+// across all registered accounts. Deliberately NOT whole-VM disk usage:
+// the OS/system footprint is unrelated to how much document storage is
+// actually in use.
+$total_quota_capacity = max(1, $total_users * UPLOAD_QUOTA);
+$used_pct = min(100, round(($total_storage / $total_quota_capacity) * 100));
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -306,14 +306,14 @@ $used_pct = min(100, round(($disk_used / $disk_total) * 100));
                 <div class="value"><?= $total_users ?></div>
             </div>
             <div class="stat-card">
-                <div class="label">Disk Space Used</div>
-                <div class="value"><?= formatBytes($disk_used) ?></div>
-                <div class="stat-subvalue">of <?= formatBytes($disk_total) ?> total (<?= formatBytes($total_storage) ?> in user files)</div>
+                <div class="label">Document Storage Used</div>
+                <div class="value"><?= formatBytes($total_storage) ?></div>
+                <div class="stat-subvalue">across all uploads (personal + shared)</div>
             </div>
             <div class="stat-card">
                 <div class="label">Utilization</div>
                 <div class="value"><?= $used_pct ?>%</div>
-                <div class="stat-subvalue">of entire hard disk</div>
+                <div class="stat-subvalue">of combined quota (<?= formatBytes($total_quota_capacity) ?>)</div>
             </div>
         </div>
 
