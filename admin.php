@@ -57,8 +57,13 @@ function formatBytes($bytes, $precision = 2) {
     return round($bytes, $precision) . ' ' . $units[$pow]; 
 }
 
-$system_quota = max(1, $total_users * UPLOAD_QUOTA);
-$used_pct = min(100, round(($total_storage / $system_quota) * 100));
+// "Utilization" is real disk usage on the volume backing PROJECT_DIR, not a
+// per-student-quota projection — otherwise a single registered user would
+// misleadingly show near-full utilization against their own 200MB cap.
+$disk_total = @disk_total_space(PROJECT_DIR) ?: 1;
+$disk_free = @disk_free_space(PROJECT_DIR) ?: 0;
+$disk_used = $disk_total - $disk_free;
+$used_pct = min(100, round(($disk_used / $disk_total) * 100));
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -150,6 +155,7 @@ $used_pct = min(100, round(($total_storage / $system_quota) * 100));
 
         .stat-card .label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); margin-bottom: 0.5rem; }
         .stat-card .value { font-family: var(--font-heading); font-size: 1.8rem; color: var(--text-primary); }
+        .stat-card .stat-subvalue { font-size: 0.72rem; color: var(--text-muted); margin-top: 4px; }
 
         .glass-card {
             background: var(--glass-bg); backdrop-filter: blur(var(--glass-blur)); border: 1px solid var(--glass-border); border-radius: 16px;
@@ -300,12 +306,14 @@ $used_pct = min(100, round(($total_storage / $system_quota) * 100));
                 <div class="value"><?= $total_users ?></div>
             </div>
             <div class="stat-card">
-                <div class="label">Server Storage Used</div>
-                <div class="value"><?= formatBytes($total_storage) ?></div>
+                <div class="label">Disk Space Used</div>
+                <div class="value"><?= formatBytes($disk_used) ?></div>
+                <div class="stat-subvalue">of <?= formatBytes($disk_total) ?> total (<?= formatBytes($total_storage) ?> in user files)</div>
             </div>
             <div class="stat-card">
                 <div class="label">Utilization</div>
                 <div class="value"><?= $used_pct ?>%</div>
+                <div class="stat-subvalue">of entire hard disk</div>
             </div>
         </div>
 
