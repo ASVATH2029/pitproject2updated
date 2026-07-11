@@ -22,27 +22,32 @@ $confirm  = $_POST['confirm_password'] ?? '';
 $username = preg_replace('/[^a-zA-Z0-9_-]/', '', $username);
 $username = strtolower($username);
 
+// Carries the (non-sensitive) username/email back to signup.php on a
+// validation-error redirect so the user doesn't have to retype them —
+// passwords are never echoed back.
+$backfill = '&username=' . urlencode($username) . '&email=' . urlencode($email);
+
 // Validate username
 if (!preg_match('/^[a-zA-Z0-9_]{3,32}$/', $username)) {
-    header('Location: signup.php?error=invalid');
+    header('Location: signup.php?error=invalid' . $backfill);
     exit;
 }
 
 // Validate email
 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    header('Location: signup.php?error=invalidemail');
+    header('Location: signup.php?error=invalidemail' . $backfill);
     exit;
 }
 
 // Password complexity enforcement
 if (strlen($password) < 8 || !preg_match('/[A-Za-z]/', $password) || !preg_match('/[0-9]/', $password) || !preg_match('/[^A-Za-z0-9]/', $password)) {
-    header('Location: signup.php?error=weak_password');
+    header('Location: signup.php?error=weak_password' . $backfill);
     exit;
 }
 
 // Passwords must match
 if ($password !== $confirm) {
-    header('Location: signup.php?error=mismatch');
+    header('Location: signup.php?error=mismatch' . $backfill);
     exit;
 }
 
@@ -50,7 +55,7 @@ $userDir = get_user_dir($username);
 
 // Check if user already exists
 if (is_dir($userDir) && file_exists($userDir . '/.user')) {
-    header('Location: signup.php?error=exists');
+    header('Location: signup.php?error=exists' . $backfill);
     exit;
 }
 

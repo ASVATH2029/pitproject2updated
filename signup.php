@@ -7,6 +7,8 @@ if (!empty($_SESSION['username'])) {
 session_write_close();
 $error = $_GET['error'] ?? '';
 $success = $_GET['success'] ?? '';
+$old_username = htmlspecialchars($_GET['username'] ?? '', ENT_QUOTES);
+$old_email = htmlspecialchars($_GET['email'] ?? '', ENT_QUOTES);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -260,6 +262,39 @@ $success = $_GET['success'] ?? '';
             margin-top: 5px;
         }
 
+        /* PASSWORD STRENGTH METER */
+        .strength-meter {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 6px;
+        }
+
+        .strength-seg {
+            flex: 1;
+            height: 4px;
+            border-radius: 2px;
+            background: rgba(255, 255, 255, 0.1);
+            transition: background 0.25s ease;
+        }
+
+        .strength-seg.weak { background: #e06c5c; }
+        .strength-seg.fair { background: #e6b45a; }
+        .strength-seg.good { background: #a0c88c; }
+        .strength-seg.strong { background: #7dcea0; }
+
+        .strength-label {
+            font-size: 0.68rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+            min-height: 1em;
+            transition: color 0.25s ease;
+        }
+
+        .strength-label.weak { color: #e06c5c; }
+        .strength-label.fair { color: #e6b45a; }
+        .strength-label.good { color: #a0c88c; }
+        .strength-label.strong { color: #7dcea0; }
+
         .btn-submit {
             display: block;
             width: 100%;
@@ -419,18 +454,25 @@ $success = $_GET['success'] ?? '';
             <form method="POST" action="register.php">
                 <div class="input-group">
                     <label>USERNAME</label>
-                    <input type="text" name="username" placeholder="" autocomplete="username" required>
+                    <input type="text" name="username" value="<?= $old_username ?>" placeholder="" autocomplete="username" required>
                 </div>
                 <div class="input-group">
                     <label>EMAIL <span style="font-size:0.65rem;opacity:0.5;text-transform:none;letter-spacing:0;">(used
                             for password recovery)</span></label>
-                    <input type="email" name="email" placeholder="" autocomplete="email" required>
+                    <input type="email" name="email" value="<?= $old_email ?>" placeholder="" autocomplete="email" required>
                 </div>
                 <div class="input-group">
                     <label>PASSWORD</label>
+                    <div class="strength-meter" id="strengthMeter">
+                        <div class="strength-seg"></div>
+                        <div class="strength-seg"></div>
+                        <div class="strength-seg"></div>
+                        <div class="strength-seg"></div>
+                    </div>
+                    <div class="strength-label" id="strengthLabel"></div>
                     <div class="password-wrapper">
                         <input type="password" name="password" id="signupPass" placeholder=""
-                            autocomplete="new-password" required>
+                            autocomplete="new-password" required oninput="updatePasswordStrength(this.value)">
                         <button type="button" class="toggle-password" onclick="togglePassword('signupPass',this)"
                             aria-label="Show password">
                             <svg class="eye-open" viewBox="0 0 24 24" fill="var(--text-primary)">
@@ -472,6 +514,50 @@ $success = $_GET['success'] ?? '';
         function updateDateTime() { var now = new Date(); var months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']; document.getElementById('currentDate').textContent = months[now.getMonth()] + ' ' + now.getDate() + ', ' + now.getFullYear(); var h = now.getHours(), m = now.getMinutes(), ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12; document.getElementById('currentTime').textContent = h + ':' + (m < 10 ? '0' : '') + m + ' ' + ap; }
         updateDateTime(); setInterval(updateDateTime, 1000);
         function togglePassword(id, btn) { var inp = document.getElementById(id); var eo = btn.querySelector('.eye-open'), ec = btn.querySelector('.eye-closed'); if (inp.type === 'password') { inp.type = 'text'; eo.style.display = 'none'; ec.style.display = 'block'; } else { inp.type = 'password'; eo.style.display = 'block'; ec.style.display = 'none'; } }
+
+        // ── Real-time password strength meter ──────────────────────────────────
+        // Mirrors register.php's server-side rule exactly: 8+ chars, at least
+        // one letter, one number, and one symbol are all REQUIRED (not just
+        // "the more the better") — length beyond 8 and mixed case add extra
+        // strength credit once those requirements are met.
+        function updatePasswordStrength(pw) {
+            var segs = document.querySelectorAll('#strengthMeter .strength-seg');
+            var label = document.getElementById('strengthLabel');
+
+            if (!pw) {
+                segs.forEach(function (s) { s.className = 'strength-seg'; });
+                label.textContent = '';
+                label.className = 'strength-label';
+                return;
+            }
+
+            var hasLen = pw.length >= 8;
+            var hasLetter = /[A-Za-z]/.test(pw);
+            var hasNumber = /[0-9]/.test(pw);
+            var hasSymbol = /[^A-Za-z0-9]/.test(pw);
+            var meetsRequirements = hasLen && hasLetter && hasNumber && hasSymbol;
+
+            var score = [hasLen, hasLetter, hasNumber, hasSymbol].filter(Boolean).length;
+            if (meetsRequirements) {
+                if (pw.length >= 14 && /[a-z]/.test(pw) && /[A-Z]/.test(pw)) score = 4;
+                else if (pw.length >= 10) score = 4;
+                else score = 3;
+            }
+
+            var tier = ['weak', 'weak', 'fair', 'good', 'strong'][score];
+            var labels = {
+                weak: 'Weak — needs 8+ chars with letters, numbers & symbols',
+                fair: 'Fair — add numbers or symbols to strengthen',
+                good: 'Good — meets requirements',
+                strong: 'Strong password'
+            };
+
+            segs.forEach(function (s, i) {
+                s.className = 'strength-seg' + (i < score ? ' ' + tier : '');
+            });
+            label.textContent = labels[tier];
+            label.className = 'strength-label ' + tier;
+        }
     </script>
 </body>
 
