@@ -379,6 +379,70 @@ if (is_admin() && !empty($_GET['target'])) {
             margin-bottom: 14px;
         }
 
+        /* SPLIT UTILIZATION (personal vs shared) */
+        .quota-split {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .quota-split-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 10px;
+            padding: 10px 14px;
+        }
+
+        .quota-split-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.68rem;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .quota-split-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .quota-split-dot.personal { background: rgba(160, 200, 140, 0.9); }
+        .quota-split-dot.shared { background: rgba(144, 202, 249, 0.9); }
+
+        .quota-split-bar {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-bottom: 5px;
+        }
+
+        .quota-split-fill {
+            height: 100%;
+            border-radius: 2px;
+            width: 0%;
+            transition: width 0.4s;
+        }
+
+        .quota-split-fill.personal { background: rgba(160, 200, 140, 0.75); }
+        .quota-split-fill.shared { background: rgba(144, 202, 249, 0.75); }
+
+        .quota-split-value {
+            font-size: 0.72rem;
+            color: var(--text-cream);
+        }
+
+        @media(max-width:480px) {
+            .quota-split { grid-template-columns: 1fr; }
+        }
+
         /* QUOTA WARNING */
         .quota-warning {
             background: rgba(255, 180, 50, 0.12);
@@ -913,9 +977,9 @@ if (is_admin() && !empty($_GET['target'])) {
         }
         .staff-tile:hover { border-color: rgba(160,200,140,0.2); transform: translateY(-2px); }
         @keyframes tileSlideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-        .staff-tile .st-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.6rem; }
-        .staff-tile .st-title { font-family: var(--font-heading); font-size: 1rem; font-weight: 400; color: var(--text-cream); }
-        .staff-tile .st-from { font-size: 0.72rem; color: #a0c88c; }
+        .staff-tile .st-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 0.6rem; }
+        .staff-tile .st-title { font-family: var(--font-heading); font-size: 1rem; font-weight: 400; color: var(--text-cream); flex: 1 1 auto; min-width: 0; overflow-wrap: break-word; }
+        .staff-tile .st-from { font-size: 0.72rem; color: #a0c88c; white-space: nowrap; flex-shrink: 0; padding-top: 2px; }
         .staff-tile .st-desc { font-size: 0.8rem; color: var(--text-muted); line-height: 1.4; margin-bottom: 0.8rem; }
         .staff-tile .st-status { font-size: 0.72rem; margin-bottom: 0.8rem; }
         .staff-tile .st-status .shared { color: #7dcea0; }
@@ -1184,6 +1248,20 @@ if (is_admin() && !empty($_GET['target'])) {
                 </div>
                 <div class="quota-text" id="quotaText">Calculating…</div>
 
+                <!-- Split utilization: personal vs shared -->
+                <div class="quota-split">
+                    <div class="quota-split-item">
+                        <div class="quota-split-label"><span class="quota-split-dot personal"></span>Personal Files</div>
+                        <div class="quota-split-bar"><div class="quota-split-fill personal" id="personalQuotaFill"></div></div>
+                        <div class="quota-split-value" id="personalQuotaText">—</div>
+                    </div>
+                    <div class="quota-split-item">
+                        <div class="quota-split-label"><span class="quota-split-dot shared"></span>Shared Folder</div>
+                        <div class="quota-split-bar"><div class="quota-split-fill shared" id="sharedQuotaFill"></div></div>
+                        <div class="quota-split-value" id="sharedQuotaText">—</div>
+                    </div>
+                </div>
+
                 <!-- Toolbar -->
                 <div class="toolbar">
                     <button class="btn-tool" onclick="triggerUpload()">
@@ -1375,6 +1453,13 @@ if (is_admin() && !empty($_GET['target'])) {
                     var warn = document.getElementById('quotaWarning');
                     if (pct >= 80) { warn.classList.add('visible'); document.getElementById('quotaWarnText').textContent = 'Storage usage at ' + pct.toFixed(0) + '%! Consider cleaning up old files.'; }
                     else { warn.classList.remove('visible'); }
+                    // Split personal vs shared utilization
+                    var personalPct = parseFloat(data.personal_usage_percent) || 0;
+                    var sharedPct = parseFloat(data.shared_usage_percent) || 0;
+                    document.getElementById('personalQuotaFill').style.width = personalPct + '%';
+                    document.getElementById('personalQuotaText').textContent = fmtBytes(data.personal_usage || 0) + ' (' + personalPct + '%)';
+                    document.getElementById('sharedQuotaFill').style.width = sharedPct + '%';
+                    document.getElementById('sharedQuotaText').textContent = fmtBytes(data.shared_usage || 0) + ' (' + sharedPct + '%)';
                     renderFileList();
                     renderLargestFiles();
                     renderWeeklyChart(pct);

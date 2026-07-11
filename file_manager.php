@@ -32,10 +32,16 @@ foreach ($items as $item) {
     }
 }
 
-$usage = dir_size($user_dir);
+$personal_usage = dir_size($user_dir);
+$shared_usage = shared_dir_size($target_user);
+$total_usage = $personal_usage + $shared_usage;
 echo json_encode([
     'files' => $files,
-    'usage' => $usage,
+    'usage' => $total_usage,
+    'personal_usage' => $personal_usage,
+    'shared_usage' => $shared_usage,
     'quota' => UPLOAD_QUOTA,
-    'usage_percent' => round(($usage / UPLOAD_QUOTA) * 100, 1)
+    'usage_percent' => round(($total_usage / UPLOAD_QUOTA) * 100, 1),
+    'personal_usage_percent' => round(($personal_usage / UPLOAD_QUOTA) * 100, 1),
+    'shared_usage_percent' => round(($shared_usage / UPLOAD_QUOTA) * 100, 1)
 ]);

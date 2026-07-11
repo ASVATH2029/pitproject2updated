@@ -21,14 +21,18 @@ foreach ($items as $item) {
     $path = PROJECT_DIR . '/' . $item;
     if (is_dir($path) && file_exists($path . '/.user')) {
         $data = json_decode(file_get_contents($path . '/.user'), true) ?: [];
-        $size = dir_size($path);
-        
+        $personal_size = dir_size($path);
+        $shared_size = shared_dir_size($item);
+        $size = $personal_size + $shared_size;
+
         $users[] = [
             'username' => $item,
             'email' => $data['email'] ?? 'N/A',
             'role' => $data['role'] ?? 'collaborator',
             'created' => $data['created'] ?? 'Unknown',
-            'size' => $size
+            'size' => $size,
+            'personal_size' => $personal_size,
+            'shared_size' => $shared_size
         ];
         $total_storage += $size;
         $total_users++;
@@ -241,18 +245,21 @@ $used_pct = min(100, round(($total_storage / $system_quota) * 100));
             display: inline-block; background: rgba(160,200,140,0.12); color: #a0c88c;
             padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; margin: 3px 4px;
         }
+        .staff-list-display .staff-chip.pending {
+            background: rgba(230,180,90,0.14); color: #e6b45a;
+        }
     </style>
 </head>
 <body>
     <div class="top-bar" id="topBar">
-        <span id="adminDate" class="topbar-meta" style="font-size:0.88rem; color:var(--text-muted);"></span>
+        <span id="adminDate" class="topbar-meta" style="font-size:0.88rem; color:var(--text-cream); opacity:0.85;"></span>
         <span class="greeting">Pitsnas - Admin</span>
         <nav class="nav-links">
             <a href="staff_dashboard.php" class="nav-btn">Staff Portal</a>
             <a href="dashboard.php" class="nav-btn">My Files</a>
             <a href="logout.php" class="nav-btn nav-btn-logout">Logout</a>
         </nav>
-        <span id="adminTime" class="topbar-meta" style="font-size:0.88rem; color:var(--text-muted);"></span>
+        <span id="adminTime" class="topbar-meta" style="font-size:0.88rem; color:var(--text-cream); opacity:0.85;"></span>
     </div>
 
     <div class="page-wrapper">
@@ -294,7 +301,7 @@ $used_pct = min(100, round(($total_storage / $system_quota) * 100));
                             <div class="user-meta">
                                 <?php if ($u['role'] === 'admin'): ?><span class="user-badge" style="background:rgba(230,150,150,0.15); color:#e69696;">Admin</span><?php endif; ?>
                                 <?php if (is_staff_user($u['username'])): ?><span class="user-badge" style="background:rgba(160,200,140,0.15); color:#a0c88c;">Staff</span><?php endif; ?>
-                                <span><?= formatBytes($u['size']) ?> used</span>
+                                <span><?= formatBytes($u['size']) ?> used <span style="color:var(--text-muted); font-size:0.72rem;">(<?= formatBytes($u['personal_size']) ?> personal &middot; <?= formatBytes($u['shared_size']) ?> shared)</span></span>
                                 <span>Joined: <?= explode(' ', $u['created'])[0] ?></span>
                             </div>
                         </div>
@@ -323,19 +330,22 @@ $used_pct = min(100, round(($total_storage / $system_quota) * 100));
             <hr class="divider">
 
             <div class="bulk-upload-area" onclick="triggerBulkUpload()">
-                <p>Upload Staff List</p>
-                <p class="hint">Drop a .txt or .csv file with one username per line to bulk-assign staff roles</p>
+                <p>Upload Staff Roster</p>
+                <p class="hint">Drop a .txt or .csv file with one username per line. Listed usernames are pre-approved as staff — if they haven't registered yet, their account becomes staff automatically the moment they sign up; if they're already registered, they're promoted immediately.</p>
                 <input type="file" id="bulkFileInput" accept=".txt,.csv" style="display:none" onchange="handleBulkUpload(this)">
             </div>
 
             <?php
             $staff_list = get_staff_list();
+            $registered_usernames = array_column($users, 'username');
             if (!empty($staff_list)):
             ?>
             <div class="staff-list-display">
-                <strong style="color:var(--text-cream);">Current Staff (<?= count($staff_list) ?>):</strong><br>
+                <strong style="color:var(--text-cream);">Staff Roster (<?= count($staff_list) ?>):</strong>
+                <span class="hint" style="display:block; margin-bottom:8px;">Green = registered &amp; active staff. Amber = pre-approved, awaiting signup.</span>
                 <?php foreach ($staff_list as $s): ?>
-                    <span class="staff-chip"><?= htmlspecialchars($s) ?></span>
+                    <?php $registered = in_array($s, $registered_usernames, true); ?>
+                    <span class="staff-chip<?= $registered ? '' : ' pending' ?>" title="<?= $registered ? 'Registered' : 'Awaiting signup' ?>"><?= htmlspecialchars($s) ?></span>
                 <?php endforeach; ?>
             </div>
             <?php endif; ?>

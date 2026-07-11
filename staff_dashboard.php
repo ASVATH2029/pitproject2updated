@@ -203,9 +203,9 @@ $role = is_admin() ? 'Admin' : 'Staff';
 
         @keyframes tileSlide { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
 
-        .tile-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.8rem; }
-        .tile-title { font-family: var(--font-heading); font-size: 1.1rem; font-weight: 400; color: var(--text-cream); }
-        .tile-date { font-size: 0.7rem; color: var(--text-muted); white-space: nowrap; }
+        .tile-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 0.8rem; }
+        .tile-title { font-family: var(--font-heading); font-size: 1.1rem; font-weight: 400; color: var(--text-cream); flex: 1 1 auto; min-width: 0; overflow-wrap: break-word; }
+        .tile-date { font-size: 0.7rem; color: #c9c2ac; white-space: nowrap; flex-shrink: 0; padding-top: 2px; }
         .tile-desc { font-size: 0.82rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 1rem; }
         .tile-meta { display: flex; gap: 12px; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1rem; flex-wrap: wrap; }
         .tile-badge {
@@ -370,7 +370,7 @@ $role = is_admin() ? 'Admin' : 'Staff';
 
 <body>
     <div class="top-bar" id="topBar">
-        <span id="staffDate" class="topbar-meta" style="font-size:0.88rem; color:var(--text-muted);"></span>
+        <span id="staffDate" class="topbar-meta" style="font-size:0.88rem; color:var(--text-cream); opacity:0.85;"></span>
         <div class="brand">Pitsnas - Staff</div>
         <nav class="nav-links">
             <?php if (is_admin()): ?>
@@ -379,7 +379,7 @@ $role = is_admin() ? 'Admin' : 'Staff';
             <a href="dashboard.php" class="nav-btn">My Files</a>
             <a href="logout.php" class="nav-btn nav-btn-logout">Logout</a>
         </nav>
-        <span id="staffTime" class="topbar-meta" style="font-size:0.88rem; color:var(--text-muted);"></span>
+        <span id="staffTime" class="topbar-meta" style="font-size:0.88rem; color:var(--text-cream); opacity:0.85;"></span>
     </div>
 
     <div class="page-wrapper">
