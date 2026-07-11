@@ -1733,6 +1733,18 @@ if (is_admin() && !empty($_GET['target'])) {
         loadStaffRequests();
         loadAnnouncements();
         loadSharedFolder();
+
+        // Re-fetch everything when the page is restored from the browser's
+        // back/forward cache (bfcache) — otherwise stats stay stale/blank
+        // after navigating to another page and back.
+        window.addEventListener('pageshow', function (e) {
+            if (e.persisted) {
+                loadFiles();
+                loadStaffRequests();
+                loadAnnouncements();
+                loadSharedFolder();
+            }
+        });
     </script>
 </body>
 

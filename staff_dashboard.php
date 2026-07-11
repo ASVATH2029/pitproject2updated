@@ -1018,6 +1018,16 @@ $role = is_admin() ? 'Admin' : 'Staff';
         loadAnnouncements();
         loadAnnStaffFilter();
 
+        // Re-fetch when restored from bfcache so stats don't stay stale/blank
+        // after navigating away and back.
+        window.addEventListener('pageshow', function (e) {
+            if (e.persisted) {
+                loadRequests();
+                loadAnnouncements();
+                loadAnnStaffFilter();
+            }
+        });
+
         // ── Clock ─────────────────────────────────────────────────────────────
         function updateStaffClock() {
             var now = new Date();

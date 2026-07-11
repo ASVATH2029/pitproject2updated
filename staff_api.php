@@ -19,6 +19,8 @@ require_once __DIR__ . '/session.php';
 require_login();
 
 header('Content-Type: application/json');
+header('Cache-Control: no-store, no-cache, must-revalidate');
+header('Pragma: no-cache');
 
 // Only staff and admin can use this API
 if (!is_staff() && !is_admin()) {

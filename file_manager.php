@@ -10,6 +10,8 @@ if (is_admin() && !empty($_GET['target'])) {
 $user_dir = ensure_user_dir($target_user);
 
 header('Content-Type: application/json');
+header('Cache-Control: no-store, no-cache, must-revalidate');
+header('Pragma: no-cache');
 
 $files = [];
 $items = scandir($user_dir);

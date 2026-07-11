@@ -73,6 +73,8 @@ if ($action === 'download') {
 }
 
 header('Content-Type: application/json');
+header('Cache-Control: no-store, no-cache, must-revalidate');
+header('Pragma: no-cache');
 
 switch ($action) {
 
