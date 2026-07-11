@@ -99,6 +99,9 @@ $used_pct = min(100, round(($total_storage / $system_quota) * 100));
             transition: all 0.25s ease;
         }
         .top-bar .nav-btn:hover { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.20); transform: translateY(-1px); }
+        .top-bar .nav-btn-logout { background: rgba(200,90,80,0.14); border-color: rgba(200,90,80,0.25); }
+        .top-bar .nav-btn-logout:hover { background: rgba(200,90,80,0.24); border-color: rgba(200,90,80,0.40); }
+        .top-bar .nav-links { display: flex; align-items: center; gap: 10px; }
 
         .top-bar.scrolled {
             top: 12px; left: 50%; right: auto;
@@ -176,32 +179,50 @@ $used_pct = min(100, round(($total_storage / $system_quota) * 100));
         .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: rgba(40,55,40,0.9); padding: 12px 24px; border-radius: 30px; color: white; font-size: 0.9rem; border: 1px solid rgba(160,200,140,0.3); opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 1000;}
         .toast.show { opacity: 1; }
 
+        @media(max-width:768px) {
+            .top-bar { padding: 16px 20px; }
+            .top-bar .topbar-meta { display: none; }
+        }
+
         @media(max-width:600px) {
             .top-bar {
-                top: 12px;
-                left: 50%;
-                right: auto;
-                transform: translateX(-50%);
-                width: 90%;
-                max-width: 400px;
-                padding: 10px 20px;
-                background: rgba(10, 18, 10, 0.85);
+                top: 0;
+                left: 0;
+                right: 0;
+                transform: none;
+                width: 100%;
+                max-width: none;
+                padding: 12px 18px;
+                background: rgba(10, 18, 10, 0.9);
                 backdrop-filter: blur(20px);
                 -webkit-backdrop-filter: blur(20px);
-                border: 1px solid rgba(255, 255, 255, 0.08);
-                border-radius: 50px;
-                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.04);
+                border: none;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+                border-radius: 0;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
                 font-size: 0.85rem;
                 justify-content: space-between;
-                flex-wrap: wrap;
-                flex-direction: column;
-                gap: 10px;
+                gap: 8px;
             }
-            .page-wrapper { padding: 130px 4vw 60px; }
+            .top-bar .greeting { font-size: 0.9rem; white-space: nowrap; }
+            .top-bar .nav-links { gap: 6px; flex-shrink: 0; }
+            .top-bar .nav-btn { padding: 7px 11px; font-size: 0.72rem; }
+            .top-bar.scrolled {
+                top: 10px; left: 10px; right: 10px; transform: none;
+                width: calc(100% - 20px); max-width: none;
+                border-radius: 50px; border: 1px solid rgba(255, 255, 255, 0.08);
+            }
+            .page-wrapper { padding: 90px 4vw 60px; }
             .stats-grid { grid-template-columns: 1fr; gap: 1rem; }
             .glass-card { padding: 20px 15px; border-radius: 12px; }
             .user-row { flex-direction: column; gap: 15px; text-align: center; }
             .btn-group { width: 100%; justify-content: space-between; flex-wrap: wrap; }
+        }
+
+        @media(max-width:420px) {
+            .top-bar { padding: 10px 12px; }
+            .top-bar .greeting { font-size: 0.8rem; }
+            .top-bar .nav-btn { padding: 6px 9px; font-size: 0.68rem; }
         }
 
         /* BULK UPLOAD CARD */
@@ -224,14 +245,14 @@ $used_pct = min(100, round(($total_storage / $system_quota) * 100));
 </head>
 <body>
     <div class="top-bar" id="topBar">
-        <span id="adminDate" style="font-size:0.88rem; color:var(--text-muted);"></span>
+        <span id="adminDate" class="topbar-meta" style="font-size:0.88rem; color:var(--text-muted);"></span>
         <span class="greeting">Pitsnas - Admin</span>
-        <div style="display:flex; align-items:center; gap:10px;">
+        <nav class="nav-links">
             <a href="staff_dashboard.php" class="nav-btn">Staff Portal</a>
-            <a href="dashboard.php" class="nav-btn">Dashboard</a>
-            <a href="logout.php" class="nav-btn">Logout</a>
-        </div>
-        <span id="adminTime" style="font-size:0.88rem; color:var(--text-muted);"></span>
+            <a href="dashboard.php" class="nav-btn">My Files</a>
+            <a href="logout.php" class="nav-btn nav-btn-logout">Logout</a>
+        </nav>
+        <span id="adminTime" class="topbar-meta" style="font-size:0.88rem; color:var(--text-muted);"></span>
     </div>
 
     <div class="page-wrapper">

@@ -81,6 +81,9 @@ $role = is_admin() ? 'Admin' : 'Staff';
             transition: all 0.25s ease;
         }
         .top-bar .nav-btn:hover { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.20); transform: translateY(-1px); }
+        .top-bar .nav-btn-logout { background: rgba(200,90,80,0.14); border-color: rgba(200,90,80,0.25); }
+        .top-bar .nav-btn-logout:hover { background: rgba(200,90,80,0.24); border-color: rgba(200,90,80,0.40); }
+        .top-bar .nav-links { display: flex; align-items: center; gap: 10px; }
 
         .top-bar.scrolled {
             top: 12px; left: 50%; right: auto;
@@ -271,6 +274,7 @@ $role = is_admin() ? 'Admin' : 'Staff';
             border: 1px solid var(--glass-border);
             border-radius: var(--radius-card);
             padding: 2rem; width: 90%; max-width: 520px;
+            max-height: 88vh; overflow-y: auto;
             box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
         }
         .modal-window h2 { font-family: var(--font-heading); font-size: 1.5rem; margin-bottom: 1.5rem; }
@@ -324,6 +328,7 @@ $role = is_admin() ? 'Admin' : 'Staff';
         /* RESPONSIVE */
         @media(max-width:768px) {
             .top-bar { padding: 16px 20px; }
+            .top-bar .topbar-meta { display: none; }
             .stats-grid { grid-template-columns: 1fr; }
             .glass-card { padding: 1.5rem; }
             .tiles-grid { grid-template-columns: 1fr; }
@@ -331,36 +336,50 @@ $role = is_admin() ? 'Admin' : 'Staff';
 
         @media(max-width:600px) {
             .top-bar {
-                top: 12px; left: 50%; right: auto; transform: translateX(-50%);
-                width: 90%; max-width: 400px; padding: 10px 20px;
-                background: rgba(10,18,10,0.85); backdrop-filter: blur(20px);
+                top: 0; left: 0; right: 0; transform: none;
+                width: 100%; max-width: none; padding: 12px 18px;
+                background: rgba(10,18,10,0.9); backdrop-filter: blur(20px);
                 -webkit-backdrop-filter: blur(20px);
-                border: 1px solid rgba(255,255,255,0.08); border-radius: 50px;
-                box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-                font-size: 0.85rem; flex-wrap: wrap; gap: 8px;
+                border: none; border-bottom: 1px solid rgba(255,255,255,0.08); border-radius: 0;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+                font-size: 0.85rem; gap: 8px; justify-content: space-between;
             }
-            .page-wrapper { padding: 100px 4vw 60px; }
+            .top-bar .brand { font-size: 0.9rem; white-space: nowrap; }
+            .top-bar .nav-links { gap: 6px; flex-shrink: 0; }
+            .top-bar .nav-btn { padding: 7px 12px; font-size: 0.74rem; }
+            .top-bar.scrolled {
+                top: 10px; left: 10px; right: 10px; transform: none;
+                width: calc(100% - 20px); max-width: none;
+                border-radius: 50px; border: 1px solid rgba(255,255,255,0.08);
+            }
+            .page-wrapper { padding: 90px 4vw 60px; }
             .glass-card { padding: 1.2rem; border-radius: 12px; }
             .card-header h2 { font-size: 1.3rem; }
             .card-header { flex-direction: column; gap: 12px; align-items: flex-start; }
             .file-row { flex-wrap: wrap; padding: 12px 14px; }
             .file-student { min-width: auto; width: 100%; margin-bottom: 4px; }
         }
+
+        @media(max-width:420px) {
+            .top-bar { padding: 10px 12px; }
+            .top-bar .brand { font-size: 0.82rem; }
+            .top-bar .nav-btn { padding: 6px 10px; font-size: 0.7rem; }
+        }
     </style>
 </head>
 
 <body>
     <div class="top-bar" id="topBar">
-        <span id="staffDate" style="font-size:0.88rem; color:var(--text-muted);"></span>
+        <span id="staffDate" class="topbar-meta" style="font-size:0.88rem; color:var(--text-muted);"></span>
         <div class="brand">Pitsnas - Staff</div>
-        <div style="display:flex; align-items:center; gap:10px;">
+        <nav class="nav-links">
             <?php if (is_admin()): ?>
                 <a href="admin.php" class="nav-btn">Admin Panel</a>
             <?php endif; ?>
             <a href="dashboard.php" class="nav-btn">My Files</a>
-            <a href="logout.php" class="nav-btn">Logout</a>
-        </div>
-        <span id="staffTime" style="font-size:0.88rem; color:var(--text-muted);"></span>
+            <a href="logout.php" class="nav-btn nav-btn-logout">Logout</a>
+        </nav>
+        <span id="staffTime" class="topbar-meta" style="font-size:0.88rem; color:var(--text-muted);"></span>
     </div>
 
     <div class="page-wrapper">

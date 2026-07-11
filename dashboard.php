@@ -3,7 +3,7 @@ require_once __DIR__ . '/session.php';
 require_login();
 session_write_close();
 $username = get_username();
-$role = is_admin() ? 'Admin' : 'Collaborator';
+$role = is_admin() ? 'Admin' : (is_staff() ? 'Staff' : 'Collaborator');
 
 $target = '';
 if (is_admin() && !empty($_GET['target'])) {
@@ -84,6 +84,49 @@ if (is_admin() && !empty($_GET['target'])) {
             transition: opacity 0.3s ease;
         }
 
+        .top-bar .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .top-bar .nav-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 8px 18px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.10);
+            border-radius: var(--radius-pill);
+            color: var(--text-cream);
+            text-decoration: none;
+            font-family: var(--font-heading);
+            font-size: 0.82rem;
+            font-weight: 400;
+            line-height: 1;
+            white-space: nowrap;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            transition: all 0.25s ease;
+        }
+
+        .top-bar .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.20);
+            transform: translateY(-1px);
+        }
+
+        .top-bar .nav-btn-logout {
+            background: rgba(200, 90, 80, 0.14);
+            border-color: rgba(200, 90, 80, 0.25);
+        }
+
+        .top-bar .nav-btn-logout:hover {
+            background: rgba(200, 90, 80, 0.24);
+            border-color: rgba(200, 90, 80, 0.40);
+        }
+
         .top-bar.scrolled {
             top: 12px;
             left: 50%;
@@ -106,6 +149,12 @@ if (is_admin() && !empty($_GET['target'])) {
         .top-bar.scrolled .greeting {
             font-size: 0.85rem;
             opacity: 1;
+        }
+
+        .top-bar.scrolled .nav-btn {
+            padding: 6px 14px;
+            font-size: 0.78rem;
+            line-height: 1;
         }
 
         @keyframes topSlide {
@@ -744,6 +793,8 @@ if (is_admin() && !empty($_GET['target'])) {
             padding: 2rem;
             width: 90%;
             max-width: 500px;
+            max-height: 88vh;
+            overflow-y: auto;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
         }
 
@@ -909,7 +960,7 @@ if (is_admin() && !empty($_GET['target'])) {
                 font-size: 0.82rem;
             }
 
-            .top-bar.greeting {
+            .top-bar .topbar-meta {
                 display: none;
             }
 
@@ -971,7 +1022,22 @@ if (is_admin() && !empty($_GET['target'])) {
                 box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
                 font-size: 0.85rem;
                 justify-content: space-between;
-                gap: 5px;
+                gap: 8px;
+            }
+            .top-bar .greeting {
+                font-size: 0.85rem;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                max-width: 42vw;
+            }
+            .top-bar .nav-links {
+                gap: 6px;
+                flex-shrink: 0;
+            }
+            .top-bar .nav-btn {
+                padding: 7px 12px;
+                font-size: 0.74rem;
             }
             .top-bar.scrolled {
                 top: 10px;
@@ -982,6 +1048,10 @@ if (is_admin() && !empty($_GET['target'])) {
                 max-width: none;
                 border-radius: 50px;
                 border: 1px solid rgba(255, 255, 255, 0.08);
+            }
+            .top-bar.scrolled .nav-btn {
+                padding: 6px 11px;
+                font-size: 0.72rem;
             }
             .page-wrapper {
                 padding: 90px 4vw 60px;
@@ -1005,7 +1075,21 @@ if (is_admin() && !empty($_GET['target'])) {
 
         @media(max-width:420px) {
             .top-bar {
-                padding: 12px 16px;
+                padding: 12px 14px;
+            }
+
+            .top-bar .greeting {
+                display: none;
+            }
+
+            .top-bar .nav-links {
+                width: 100%;
+                justify-content: flex-end;
+            }
+
+            .top-bar .nav-btn {
+                padding: 8px 12px;
+                font-size: 0.75rem;
             }
 
             .page-wrapper {
@@ -1026,9 +1110,18 @@ if (is_admin() && !empty($_GET['target'])) {
 <body>
 
     <div class="top-bar" id="topBar">
-        <span id="currentDate"></span>
+        <span id="currentDate" class="topbar-meta"></span>
         <span class="greeting" id="greeting">Welcome back, <?php echo htmlspecialchars($username); ?></span>
-        <span id="currentTime"></span>
+        <nav class="nav-links">
+            <?php if (is_admin()): ?>
+                <a href="staff_dashboard.php" class="nav-btn">Staff Portal</a>
+                <a href="admin.php" class="nav-btn">Admin Panel</a>
+            <?php elseif (is_staff()): ?>
+                <a href="staff_dashboard.php" class="nav-btn">Staff Portal</a>
+            <?php endif; ?>
+            <a href="logout.php" class="nav-btn nav-btn-logout">Logout</a>
+        </nav>
+        <span id="currentTime" class="topbar-meta"></span>
     </div>
 
     <div class="page-wrapper">
