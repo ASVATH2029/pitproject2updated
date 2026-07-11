@@ -54,6 +54,10 @@ if (is_dir($userDir) && file_exists($userDir . '/.user')) {
     exit;
 }
 
+// Re-open the session (it was closed above after the "already logged in"
+// check) so pending_reg actually persists to the session store.
+session_start();
+
 // ── Generate OTP & store pending registration in session ──────────────────
 $otp = generate_otp();
 

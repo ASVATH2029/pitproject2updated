@@ -1150,6 +1150,24 @@ if (is_admin() && !empty($_GET['target'])) {
             </div>
         </div>
 
+        <!-- ANNOUNCEMENTS SECTION -->
+        <div class="staff-requests-section" id="announcementsSection" style="display:none;">
+            <div class="section-header">
+                <h2>Announcements</h2>
+                <span class="req-count" id="annCount">0 announcements</span>
+            </div>
+            <div class="staff-tiles-grid" id="announcementsGrid"></div>
+        </div>
+
+        <!-- ASSIGNMENTS SECTION -->
+        <div class="staff-requests-section" id="assignmentsSection" style="display:none;">
+            <div class="section-header">
+                <h2>Assignments</h2>
+                <span class="req-count" id="assignCount">0 assignments</span>
+            </div>
+            <div class="staff-tiles-grid" id="assignmentsGrid"></div>
+        </div>
+
         <!-- STAFF REQUESTS SECTION -->
         <div class="staff-requests-section" id="staffRequestsSection" style="display:none;">
             <div class="section-header">
@@ -1158,6 +1176,17 @@ if (is_admin() && !empty($_GET['target'])) {
             </div>
             <div class="staff-tiles-grid" id="staffTilesGrid">
             </div>
+        </div>
+
+        <!-- MY SHARED FOLDER SECTION -->
+        <div class="staff-requests-section" id="sharedFolderSection">
+            <div class="section-header">
+                <h2>My Shared Folder</h2>
+                <button class="btn-submit" onclick="triggerSharedUpload()" style="background:var(--btn-bg); color:var(--btn-text); border:none; border-radius:30px; padding:8px 20px; font-family:var(--font-label); font-weight:600; font-size:0.8rem; cursor:pointer;">Upload</button>
+            </div>
+            <input type="file" id="sharedFileInput" style="display:none" onchange="uploadSharedFile(this)">
+            <div class="status-msg" id="sharedStatus"></div>
+            <div class="staff-tiles-grid" id="sharedFolderGrid"></div>
         </div>
     </div>
 
@@ -1195,6 +1224,9 @@ if (is_admin() && !empty($_GET['target'])) {
     </div>
 
     <script>
+        // ── Admin "view as" target (empty string for normal self-view) ──────────
+        var TARGET = <?= json_encode($target) ?>;
+
         // ── Clock ──────────────────────────────────────────────────────────────
         function updateDateTime() {
             var now = new Date();
@@ -1387,6 +1419,7 @@ if (is_admin() && !empty($_GET['target'])) {
         // STAFF REQUESTS (Student-Facing)
         // ══════════════════════════════════════════════════════════════════════
         var staffRequests = [];
+        var assignments = [];
         var currentShareReqId = '';
 
         function loadStaffRequests() {
@@ -1394,7 +1427,9 @@ if (is_admin() && !empty($_GET['target'])) {
                 .then(function(r) { return r.json(); })
                 .then(function(data) {
                     staffRequests = data.requests || [];
+                    assignments = data.assignments || [];
                     renderStaffRequests();
+                    renderAssignments();
                 })
                 .catch(function() {}); // silent fail
         }
@@ -1436,6 +1471,125 @@ if (is_admin() && !empty($_GET['target'])) {
                 html += '</div>';
             });
             grid.innerHTML = html;
+        }
+
+        // ── Assignments (reuses the same Share modal as Staff Requests) ────────
+        function renderAssignments() {
+            var section = document.getElementById('assignmentsSection');
+            var grid = document.getElementById('assignmentsGrid');
+            var countEl = document.getElementById('assignCount');
+
+            if (!assignments.length) { section.style.display = 'none'; return; }
+
+            section.style.display = 'block';
+            countEl.textContent = assignments.length + ' assignment' + (assignments.length !== 1 ? 's' : '');
+
+            var html = '';
+            assignments.forEach(function(r, i) {
+                html += '<div class="staff-tile" style="animation-delay:' + (i * 0.08).toFixed(2) + 's">';
+                html += '<div class="st-header">';
+                html += '<span class="st-title">' + esc(r.title) + '</span>';
+                html += '<span class="st-from">from ' + esc(r.staff_display || r.staff) + '</span>';
+                html += '</div>';
+                if (r.description) html += '<div class="st-desc">' + esc(r.description) + '</div>';
+                if (r.due_date) html += '<div class="st-desc">Due: ' + esc(r.due_date) + '</div>';
+                html += '<div class="st-status">';
+                if (r.already_shared) {
+                    html += '<span class="shared">Submitted: ' + r.shared_files.map(function(f){ return esc(f); }).join(', ') + '</span>';
+                } else {
+                    html += '<span class="pending">Not yet submitted</span>';
+                }
+                html += '</div>';
+                if (r.already_shared) {
+                    html += '<button class="st-btn done"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>Submitted</button>';
+                    html += ' <button class="st-btn" onclick="openShareModal(\'' + esc(r.id) + '\', \'' + esc(r.title) + '\')" style="margin-left:6px;"><svg viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>Add More</button>';
+                } else {
+                    html += '<button class="st-btn" onclick="openShareModal(\'' + esc(r.id) + '\', \'' + esc(r.title) + '\')"><svg viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>Submit</button>';
+                }
+                html += '</div>';
+            });
+            grid.innerHTML = html;
+        }
+
+        // ── Announcements ───────────────────────────────────────────────────────
+        var announcements = [];
+        function loadAnnouncements() {
+            fetch('announcements_api.php?action=list')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    announcements = data.announcements || [];
+                    renderAnnouncements();
+                })
+                .catch(function() {});
+        }
+        function renderAnnouncements() {
+            var section = document.getElementById('announcementsSection');
+            var grid = document.getElementById('announcementsGrid');
+            var countEl = document.getElementById('annCount');
+
+            if (!announcements.length) { section.style.display = 'none'; return; }
+
+            section.style.display = 'block';
+            countEl.textContent = announcements.length + ' announcement' + (announcements.length !== 1 ? 's' : '');
+
+            var html = '';
+            announcements.forEach(function(a, i) {
+                var badge = a.author_role === 'admin' ? 'HOD' : 'Faculty';
+                html += '<div class="staff-tile" style="animation-delay:' + (i * 0.08).toFixed(2) + 's">';
+                html += '<div class="st-header">';
+                html += '<span class="st-title">' + esc(a.title) + '</span>';
+                html += '<span class="st-from">' + badge + ' · ' + esc(a.author_display || a.author) + '</span>';
+                html += '</div>';
+                if (a.body) html += '<div class="st-desc">' + esc(a.body) + '</div>';
+                html += '</div>';
+            });
+            grid.innerHTML = html;
+        }
+
+        // ── My Shared Folder ────────────────────────────────────────────────────
+        function loadSharedFolder() {
+            fetch('shared_api.php?action=list')
+                .then(function(r) { return r.json(); })
+                .then(function(data) { renderSharedFolder(data.files || []); })
+                .catch(function() {});
+        }
+        function renderSharedFolder(files) {
+            var grid = document.getElementById('sharedFolderGrid');
+            if (!files.length) { grid.innerHTML = '<div class="empty-msg">No shared files yet.</div>'; return; }
+            var html = '';
+            files.forEach(function(f, i) {
+                html += '<div class="staff-tile" style="animation-delay:' + (i * 0.04).toFixed(2) + 's">';
+                html += '<div class="st-header"><span class="st-title">' + esc(f.name) + '</span><span class="st-from">' + fmtBytes(f.size) + '</span></div>';
+                html += '<button class="st-btn" onclick="window.open(\'shared_api.php?action=download&file=' + encodeURIComponent(f.name) + '\', \'_blank\')"><svg viewBox="0 0 24 24"><path d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16"/></svg>Download</button>';
+                html += ' <button class="st-btn" onclick="deleteSharedFile(\'' + esc(f.name) + '\')" style="margin-left:6px;">Delete</button>';
+                html += '</div>';
+            });
+            grid.innerHTML = html;
+        }
+        function triggerSharedUpload() { document.getElementById('sharedFileInput').click(); }
+        function uploadSharedFile(input) {
+            if (!input.files[0]) return;
+            var fd = new FormData(); fd.append('file', input.files[0]);
+            var status = document.getElementById('sharedStatus');
+            status.textContent = 'Uploading…'; status.className = 'status-msg';
+            var xhr = new XMLHttpRequest();
+            xhr.onload = function() {
+                try {
+                    var d = JSON.parse(xhr.responseText);
+                    if (d.error) { status.textContent = d.error; status.className = 'status-msg error'; }
+                    else { status.textContent = '✓ Uploaded: ' + d.filename; status.className = 'status-msg success'; loadSharedFolder(); }
+                } catch (e) { status.textContent = 'Upload error'; status.className = 'status-msg error'; }
+                input.value = '';
+            };
+            xhr.onerror = function() { status.textContent = 'Upload failed'; status.className = 'status-msg error'; };
+            xhr.open('POST', 'shared_api.php?action=upload'); xhr.send(fd);
+        }
+        function deleteSharedFile(name) {
+            if (!confirm('Delete "' + name + '" from your shared folder?')) return;
+            fetch('shared_api.php?action=delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ filename: name }) })
+                .then(function(r) { return r.json(); })
+                .then(function() { loadSharedFolder(); })
+                .catch(function() {});
         }
 
         // ── Share Modal ────────────────────────────────────────────────────────
@@ -1484,6 +1638,8 @@ if (is_admin() && !empty($_GET['target'])) {
 
         loadFiles();
         loadStaffRequests();
+        loadAnnouncements();
+        loadSharedFolder();
     </script>
 </body>
 

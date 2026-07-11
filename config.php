@@ -23,7 +23,7 @@ define('BLOCKED_EXTENSIONS', [
 ]);
 
 // ── Admin users ────────────────────────────────────────────────────────────
-define('ADMIN_USERS', ['aditya', 'pitsnas']);
+define('ADMIN_USERS', ['hoduser']);
 
 // ── Staff feature ──────────────────────────────────────────────────────────
 // Staff list is managed via the admin panel (promote/demote or bulk upload).
@@ -31,6 +31,21 @@ define('ADMIN_USERS', ['aditya', 'pitsnas']);
 define('STAFF_USERS_FILE',  PROJECT_DIR . '/.staff_users.json');
 define('STAFF_REQUESTS_DIR', PROJECT_DIR . '/.staff_requests');
 define('STAFF_INBOX_DIR',    PROJECT_DIR . '/.staff_inbox');
+
+// ── Announcements feature ────────────────────────────────────────────────────
+define('ANNOUNCEMENTS_DIR', PROJECT_DIR . '/.announcements');
+
+// ── Shared folder feature ────────────────────────────────────────────────────
+define('SHARED_SUBDIR', '.shared');
+
+// ── Class/Section mapping ─────────────────────────────────────────────────────
+// Each entry maps a username-suffix numeric range to a department/class label.
+// Add more department/class blocks here as the college's actual ranges grow.
+define('CLASS_RANGES', [
+    ['name' => 'CSE A', 'min' => 2510, 'max' => 2549],
+    ['name' => 'CSE B', 'min' => 2550, 'max' => 2599],
+]);
+define('CLASS_UNASSIGNED', 'Unassigned');
 
 // ── Mail / SMTP configuration ──────────────────────────────────────────────
 // Fill in your outgoing mail server details here.
@@ -104,21 +119,63 @@ function get_user_data(string $username): ?array
 
 /**
  * Determines the user's role.
- * Priority: .user file → ADMIN_USERS constant → staff list → 'collaborator'
+ *
+ * SECURITY: 'admin' and 'staff' are ONLY ever granted from the live,
+ * admin-controlled sources of truth — the ADMIN_USERS constant and the
+ * staff list (.staff_users.json). The .user file's stored 'role' field is a
+ * signup-time snapshot that is NEVER trusted to elevate privileges: a stale or
+ * tampered `role: "admin"` in a .user file must not make someone an admin.
+ * Everyone not in those two live lists is a plain 'collaborator' (student).
+ *
+ * This also means staff promotions/demotions take effect on next login,
+ * since the .staff_users.json list is consulted live rather than the snapshot.
  */
 function get_role(string $username): string
 {
-    $data = get_user_data($username);
-    if ($data && isset($data['role'])) {
-        return $data['role'];
-    }
     if (in_array($username, ADMIN_USERS, true)) {
         return 'admin';
     }
     if (is_staff_user($username)) {
         return 'staff';
     }
+    // Not in any privileged list → always a student, regardless of what the
+    // .user file may claim. (The stored role can only ever be 'collaborator'
+    // for these users; it is never allowed to grant admin/staff.)
     return 'collaborator';
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// CLASS/SECTION HELPERS
+// ══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Derives a user's class/section from the numeric suffix of their username,
+ * matched against CLASS_RANGES. An explicit .user 'class' field overrides
+ * the derived value (for transfers or non-conforming usernames).
+ */
+function get_user_class(string $username): string
+{
+    $data = get_user_data($username);
+    if ($data && !empty($data['class'])) {
+        return $data['class'];
+    }
+    if (preg_match('/(\d+)$/', $username, $m)) {
+        $num = (int)$m[1];
+        foreach (CLASS_RANGES as $range) {
+            if ($num >= $range['min'] && $num <= $range['max']) {
+                return $range['name'];
+            }
+        }
+    }
+    return CLASS_UNASSIGNED;
+}
+
+/**
+ * Returns the list of distinct configured class names (for dropdowns).
+ */
+function get_all_class_names(): array
+{
+    return array_values(array_unique(array_map(fn($r) => $r['name'], CLASS_RANGES)));
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -197,17 +254,146 @@ function get_all_requests(): array
 
 /**
  * Returns requests relevant to a specific student.
- * A request is relevant if target_students is 'all' or contains the username.
+ * A request is relevant if:
+ *   - target_students is 'all', OR
+ *   - target_students is 'class' and the request's target_class matches the
+ *     student's derived class, OR
+ *   - target_students is an array containing the student's username.
  */
 function get_student_requests(string $username): array
 {
     $all = get_all_requests();
-    return array_values(array_filter($all, function ($req) use ($username) {
+    $class = get_user_class($username);
+    return array_values(array_filter($all, function ($req) use ($username, $class) {
         $targets = $req['target_students'] ?? 'all';
         if ($targets === 'all') return true;
+        if ($targets === 'class') return ($req['target_class'] ?? '') === $class;
         if (is_array($targets)) return in_array($username, $targets, true);
         return false;
     }));
+}
+
+/**
+ * Requests explicitly of type 'assignment' (due_date-bearing document requests).
+ */
+function get_all_assignments(): array
+{
+    return array_values(array_filter(get_all_requests(), fn($r) => ($r['type'] ?? 'request') === 'assignment'));
+}
+
+/**
+ * Assignments relevant to a specific student (same targeting rules as requests).
+ */
+function get_student_assignments(string $username): array
+{
+    return array_values(array_filter(get_student_requests($username), fn($r) => ($r['type'] ?? 'request') === 'assignment'));
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// ANNOUNCEMENTS HELPERS
+// ══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Ensures the announcements directory exists.
+ */
+function ensure_announcements_dir(): void
+{
+    if (!is_dir(ANNOUNCEMENTS_DIR)) {
+        mkdir(ANNOUNCEMENTS_DIR, 0775, true);
+    }
+}
+
+/**
+ * Reads all announcements, sorted newest first.
+ */
+function get_all_announcements(): array
+{
+    ensure_announcements_dir();
+    $out = [];
+    foreach (glob(ANNOUNCEMENTS_DIR . '/*.json') ?: [] as $file) {
+        $data = json_decode(file_get_contents($file), true);
+        if (is_array($data)) {
+            $data['id'] = pathinfo($file, PATHINFO_FILENAME);
+            $out[] = $data;
+        }
+    }
+    usort($out, fn($a, $b) => ($b['created_at'] ?? 0) - ($a['created_at'] ?? 0));
+    return $out;
+}
+
+/**
+ * Announcements visible to a given student: 'all'-scoped ones, plus
+ * 'class'-scoped ones matching the student's derived class.
+ */
+function get_student_announcements(string $username): array
+{
+    $class = get_user_class($username);
+    return array_values(array_filter(get_all_announcements(), function ($a) use ($class) {
+        $type = $a['target_type'] ?? 'all';
+        if ($type === 'all') return true;
+        if ($type === 'class') return ($a['target_class'] ?? '') === $class;
+        return false;
+    }));
+}
+
+/**
+ * Announcements visible to a staff/faculty member: every HOD (admin-authored)
+ * announcement, plus the staff member's own announcements.
+ */
+function get_staff_announcements(string $username): array
+{
+    return array_values(array_filter(get_all_announcements(), function ($a) use ($username) {
+        if (($a['author_role'] ?? '') === 'admin') return true;   // HOD broadcast
+        return ($a['author'] ?? '') === $username;                // their own
+    }));
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// SHARED FOLDER HELPERS
+// ══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Returns the absolute path to a user's shared-folder subdirectory,
+ * nested inside their own storage directory (isolated, quota-counted).
+ */
+function get_shared_dir(string $username): string
+{
+    return get_user_dir($username) . '/' . SHARED_SUBDIR;
+}
+
+/**
+ * Creates the user's shared-folder subdirectory if it does not exist.
+ */
+function ensure_shared_dir(string $username): string
+{
+    $dir = get_shared_dir($username);
+    if (!is_dir($dir)) {
+        mkdir($dir, 0775, true);
+    }
+    return $dir;
+}
+
+/**
+ * Recursively sums the size of a user's shared folder (no caching —
+ * combined with dir_size() of the personal folder for quota checks).
+ */
+function shared_dir_size(string $username): int
+{
+    $dir = get_shared_dir($username);
+    if (!is_dir($dir)) {
+        return 0;
+    }
+    $size = 0;
+    $iter = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS)
+    );
+    foreach ($iter as $file) {
+        if ($file->getFilename()[0] === '.') {
+            continue;
+        }
+        $size += $file->getSize();
+    }
+    return $size;
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -237,9 +423,17 @@ function dir_size(string $dir): int
     }
 
     $size = 0;
-    $iter = new RecursiveIteratorIterator(
-        new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS)
-        );
+    $dir_iter = new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS);
+    // Prune any dot-prefixed subdirectory (e.g. .shared) from the walk entirely,
+    // not just dot-prefixed files, so shared-folder bytes aren't double-counted
+    // against quota (shared_api.php tracks that usage separately).
+    $filter = new RecursiveCallbackFilterIterator($dir_iter, function ($file) {
+        if ($file->isDir() && $file->getFilename()[0] === '.') {
+            return false;
+        }
+        return true;
+    });
+    $iter = new RecursiveIteratorIterator($filter);
 
     foreach ($iter as $file) {
         if ($file->getFilename()[0] === '.') {

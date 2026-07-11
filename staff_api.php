@@ -7,8 +7,9 @@
  *
  * Actions (via ?action= parameter):
  *   GET  list_requests     List all requests created by this staff member
+ *   GET  list_assignments   List all assignment-type requests (same rules as list_requests)
  *   GET  list_files         List files shared for a specific request (?request_id=)
- *   POST create_request     Create a new document request tile
+ *   POST create_request     Create a new document request tile (optionally type=assignment, due_date=)
  *   POST delete_request     Remove a request tile and its files
  *   POST delete_file        Delete a specific shared file
  *   GET  download_file      Download a shared file (?request_id=&file=)
@@ -35,7 +36,8 @@ switch ($action) {
 
     // ── List this staff member's requests ──────────────────────────────────
     case 'list_requests':
-        $all = get_all_requests();
+    case 'list_assignments':
+        $all = $action === 'list_assignments' ? get_all_assignments() : get_all_requests();
         // Staff sees only their own; admin sees all
         if (!is_admin()) {
             $all = array_values(array_filter($all, function ($r) use ($username) {
@@ -59,7 +61,7 @@ switch ($action) {
             }
         }
         unset($req);
-        echo json_encode(['requests' => $all]);
+        echo json_encode([$action === 'list_assignments' ? 'assignments' : 'requests' => $all]);
         break;
 
     // ── List files for a specific request ──────────────────────────────────
@@ -69,7 +71,18 @@ switch ($action) {
             echo json_encode(['error' => 'Missing request_id']);
             exit;
         }
-        $inbox_dir = STAFF_INBOX_DIR . '/' . $username . '/' . $request_id;
+        // Resolve the request's owning staff member so admin can browse
+        // requests created by other staff, not just their own inbox.
+        $req_file = STAFF_REQUESTS_DIR . '/' . $request_id . '.json';
+        $owner = $username;
+        if (file_exists($req_file)) {
+            $req_data = json_decode(file_get_contents($req_file), true);
+            $req_owner = $req_data['staff'] ?? $username;
+            if (is_admin() || $req_owner === $username) {
+                $owner = $req_owner;
+            }
+        }
+        $inbox_dir = STAFF_INBOX_DIR . '/' . $owner . '/' . $request_id;
         $files = [];
         if (is_dir($inbox_dir)) {
             $items = array_diff(scandir($inbox_dir), ['.', '..']);
@@ -98,7 +111,16 @@ switch ($action) {
             echo json_encode(['error' => 'Missing parameters']);
             exit;
         }
-        $filepath = STAFF_INBOX_DIR . '/' . $username . '/' . $request_id . '/' . $file;
+        $req_file = STAFF_REQUESTS_DIR . '/' . $request_id . '.json';
+        $owner = $username;
+        if (file_exists($req_file)) {
+            $req_data = json_decode(file_get_contents($req_file), true);
+            $req_owner = $req_data['staff'] ?? $username;
+            if (is_admin() || $req_owner === $username) {
+                $owner = $req_owner;
+            }
+        }
+        $filepath = STAFF_INBOX_DIR . '/' . $owner . '/' . $request_id . '/' . $file;
         if (!is_file($filepath)) {
             echo json_encode(['error' => 'File not found']);
             exit;
@@ -120,7 +142,14 @@ switch ($action) {
         $input = json_decode(file_get_contents('php://input'), true);
         $title = trim($input['title'] ?? '');
         $description = trim($input['description'] ?? '');
+        $target_mode = $input['target_mode'] ?? '';   // '' | 'class'
         $targets = $input['target_students'] ?? 'all';
+        $target_class = '';
+        $type = ($input['type'] ?? 'request') === 'assignment' ? 'assignment' : 'request';
+        $due_date = trim($input['due_date'] ?? '');
+        if ($due_date !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $due_date)) {
+            $due_date = '';
+        }
 
         if (empty($title)) {
             echo json_encode(['error' => 'Title is required']);
@@ -135,9 +164,16 @@ switch ($action) {
             exit;
         }
 
-        // Process target students
-        if ($targets !== 'all' && is_string($targets)) {
-            // Parse comma-separated usernames
+        if ($target_mode === 'class') {
+            // Class-scoped: store the class label; resolved per-student at read time.
+            $target_class = trim($input['target_class'] ?? '');
+            if (!in_array($target_class, get_all_class_names(), true)) {
+                echo json_encode(['error' => 'Invalid target class']);
+                exit;
+            }
+            $targets = 'class'; // sentinel — actual audience is by class match
+        } elseif ($targets !== 'all' && is_string($targets)) {
+            // Explicit username list (comma-separated).
             $targets = array_filter(array_map(function ($u) {
                 return strtolower(preg_replace('/[^a-zA-Z0-9_-]/', '', trim($u)));
             }, explode(',', $targets)));
@@ -152,7 +188,10 @@ switch ($action) {
             'title' => $title,
             'description' => $description,
             'target_students' => $targets,
-            'created_at' => time()
+            'target_class' => $target_class,
+            'created_at' => time(),
+            'type' => $type,
+            'due_date' => $due_date,
         ];
 
         file_put_contents(
@@ -185,17 +224,19 @@ switch ($action) {
 
         // Verify ownership (unless admin)
         $req_file = STAFF_REQUESTS_DIR . '/' . $request_id . '.json';
+        $owner = $username;
         if (file_exists($req_file)) {
             $req_data = json_decode(file_get_contents($req_file), true);
             if (!is_admin() && ($req_data['staff'] ?? '') !== $username) {
                 echo json_encode(['error' => 'You can only delete your own requests']);
                 exit;
             }
+            $owner = $req_data['staff'] ?? $username;
             unlink($req_file);
         }
 
-        // Delete associated inbox files
-        $inbox_dir = STAFF_INBOX_DIR . '/' . $username . '/' . $request_id;
+        // Delete associated inbox files (owned by the request's staff creator)
+        $inbox_dir = STAFF_INBOX_DIR . '/' . $owner . '/' . $request_id;
         if (is_dir($inbox_dir)) {
             $files = array_diff(scandir($inbox_dir), ['.', '..']);
             foreach ($files as $f) {
@@ -220,7 +261,16 @@ switch ($action) {
             echo json_encode(['error' => 'Missing parameters']);
             exit;
         }
-        $filepath = STAFF_INBOX_DIR . '/' . $username . '/' . $request_id . '/' . $file;
+        $req_file = STAFF_REQUESTS_DIR . '/' . $request_id . '.json';
+        $owner = $username;
+        if (file_exists($req_file)) {
+            $req_data = json_decode(file_get_contents($req_file), true);
+            $req_owner = $req_data['staff'] ?? $username;
+            if (is_admin() || $req_owner === $username) {
+                $owner = $req_owner;
+            }
+        }
+        $filepath = STAFF_INBOX_DIR . '/' . $owner . '/' . $request_id . '/' . $file;
         if (is_file($filepath)) {
             unlink($filepath);
             echo json_encode(['success' => true]);

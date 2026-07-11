@@ -384,18 +384,67 @@ $role = is_admin() ? 'Admin' : 'Staff';
         <!-- REQUESTS CARD -->
         <div class="glass-card">
             <div class="card-header">
-                <h2>Document Requests</h2>
+                <h2>Document Requests &amp; Assignments</h2>
                 <button class="btn-primary" onclick="openCreateModal()">
                     + New Request
                 </button>
             </div>
             <hr class="divider">
+            <?php if (is_admin()): ?>
+            <!-- HOD-only: filter requests/assignments by faculty -->
+            <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1rem;">
+                <select id="reqStaffFilter" onchange="setReqStaffFilter(this.value)" style="margin-left:auto;padding:6px 10px;border-radius:8px;background:var(--input-bg,rgba(25,35,22,0.75));color:var(--text-primary,#fff);border:1px solid rgba(255,255,255,0.12);">
+                    <option value="">All faculty</option>
+                </select>
+            </div>
+            <?php endif; ?>
             <div id="tilesContainer">
                 <div class="empty-state">
                     <svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5l5 5v11a2 2 0 01-2 2z"/></svg>
                     <p>Loading requests...</p>
                 </div>
             </div>
+        </div>
+
+        <!-- ANNOUNCEMENTS CARD -->
+        <div class="glass-card">
+            <div class="card-header">
+                <h2>Announcements</h2>
+                <button class="btn-primary" onclick="openAnnModal()">
+                    + New Announcement
+                </button>
+            </div>
+            <hr class="divider">
+            <?php if (is_admin()): ?>
+            <!-- HOD-only filter bar -->
+            <div class="ann-filter-bar" style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center;margin-bottom:1rem;">
+                <button class="btn-tool btn-sm ann-filter active" data-by="all" onclick="setAnnFilter('all', this)">All</button>
+                <button class="btn-tool btn-sm ann-filter" data-by="hod" onclick="setAnnFilter('hod', this)">HOD only</button>
+                <button class="btn-tool btn-sm ann-filter" data-by="staff" onclick="setAnnFilter('staff', this)">Faculty only</button>
+                <select id="annStaffFilter" onchange="setAnnStaffFilter(this.value)" style="margin-left:auto;padding:6px 10px;border-radius:8px;background:var(--input-bg,rgba(25,35,22,0.75));color:var(--text-primary,#fff);border:1px solid rgba(255,255,255,0.12);">
+                    <option value="">— By specific faculty —</option>
+                </select>
+            </div>
+            <?php endif; ?>
+            <div id="annContainer">
+                <div class="empty-state"><p>Loading announcements...</p></div>
+            </div>
+        </div>
+
+        <!-- STUDENT SHARED FILES CARD -->
+        <div class="glass-card">
+            <div class="card-header">
+                <h2>Student Shared Files</h2>
+            </div>
+            <hr class="divider">
+            <div class="input-group">
+                <label>Username</label>
+                <input type="text" id="sharedTargetInput" placeholder="Enter a student username">
+                <div style="margin-top:0.75rem;">
+                    <button class="btn-primary" onclick="viewSharedFolder()">View Shared Folder</button>
+                </div>
+            </div>
+            <div id="sharedTargetContainer"></div>
         </div>
 
         <!-- FILE VIEWER CARD -->
@@ -426,14 +475,30 @@ $role = is_admin() ? 'Admin' : 'Staff';
                 <label>Description</label>
                 <textarea id="reqDesc" placeholder="Describe what you need students to submit..." maxlength="2000"></textarea>
             </div>
-            <div class="toggle-row">
-                <div class="toggle-switch active" id="allStudentsToggle" onclick="toggleTargetAll()"></div>
-                <span class="toggle-label">All Students</span>
+            <div class="input-group">
+                <label>Who should receive this?</label>
+                <select id="reqTargetMode" onchange="onReqTargetModeChange()" style="width:100%;padding:12px;border-radius:8px;background:var(--input-bg,rgba(25,35,22,0.75));color:var(--text-primary,#fff);border:1px solid rgba(255,255,255,0.12);">
+                    <option value="all">All Students</option>
+                    <option value="class">A specific class</option>
+                    <option value="users">Specific students (by username)</option>
+                </select>
+            </div>
+            <div class="input-group" id="reqClassGroup" style="display:none;">
+                <label>Target Class</label>
+                <select id="reqClassSelect" style="width:100%;padding:12px;border-radius:8px;background:var(--input-bg,rgba(25,35,22,0.75));color:var(--text-primary,#fff);border:1px solid rgba(255,255,255,0.12);"></select>
             </div>
             <div class="input-group" id="targetGroup" style="display:none;">
                 <label>Target Students</label>
                 <input type="text" id="reqTargets" placeholder="username1, username2, ...">
                 <div class="input-hint">Comma-separated usernames. Only these students will see the request.</div>
+            </div>
+            <div class="toggle-row">
+                <div class="toggle-switch" id="isAssignmentToggle" onclick="toggleIsAssignment()"></div>
+                <span class="toggle-label">This is an Assignment (with a due date)</span>
+            </div>
+            <div class="input-group" id="dueDateGroup" style="display:none;">
+                <label>Due Date</label>
+                <input type="date" id="reqDueDate">
             </div>
             <div style="display:flex;gap:1rem;margin-top:1.5rem;">
                 <button class="btn-primary" onclick="submitRequest()">Create Request</button>
@@ -442,9 +507,40 @@ $role = is_admin() ? 'Admin' : 'Staff';
         </div>
     </div>
 
+    <!-- CREATE ANNOUNCEMENT MODAL -->
+    <div id="annModal" class="modal-overlay" onclick="closeAnnModal()">
+        <div class="modal-window" onclick="event.stopPropagation()">
+            <h2>New Announcement</h2>
+            <div class="input-group">
+                <label>Title</label>
+                <input type="text" id="annTitle" placeholder="e.g. Midterm Exam Schedule" maxlength="200">
+            </div>
+            <div class="input-group">
+                <label>Body</label>
+                <textarea id="annBody" placeholder="Announcement details..." maxlength="5000"></textarea>
+            </div>
+            <div class="toggle-row">
+                <div class="toggle-switch active" id="annAllToggle" onclick="toggleAnnAll()"></div>
+                <span class="toggle-label">All Students</span>
+            </div>
+            <div class="input-group" id="annClassGroup" style="display:none;">
+                <label>Target Class</label>
+                <select id="annClassSelect"></select>
+            </div>
+            <div style="display:flex;gap:1rem;margin-top:1.5rem;">
+                <button class="btn-primary" onclick="submitAnnouncement()">Post Announcement</button>
+                <button class="btn-tool" onclick="closeAnnModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <div id="toast" class="toast">Action completed.</div>
 
     <script>
+        // ── Session-derived constants (available to all handlers below) ────────
+        var IS_ADMIN = <?= is_admin() ? 'true' : 'false' ?>;
+        var CURRENT_USER = <?= json_encode($username) ?>;
+
         // ── Helpers ───────────────────────────────────────────────────────────
         function fmtBytes(b) { if (b < 1024) return b + ' B'; if (b < 1048576) return (b / 1024).toFixed(1) + ' KB'; return (b / 1048576).toFixed(1) + ' MB'; }
         function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
@@ -459,6 +555,7 @@ $role = is_admin() ? 'Admin' : 'Staff';
         // ── Data ──────────────────────────────────────────────────────────────
         var allRequests = [];
         var currentViewId = '';
+        var reqFilterStaff = '';   // HOD-only: filter requests to one faculty member
 
         // ── Load Requests ─────────────────────────────────────────────────────
         function loadRequests() {
@@ -467,10 +564,33 @@ $role = is_admin() ? 'Admin' : 'Staff';
                 .then(function(data) {
                     if (data.error) { showToast(data.error); return; }
                     allRequests = data.requests || [];
+                    populateReqStaffFilter();
                     renderStats();
                     renderTiles();
                 })
                 .catch(function() { showToast('Failed to load requests'); });
+        }
+
+        // HOD-only: fill the faculty dropdown with distinct request owners.
+        function populateReqStaffFilter() {
+            if (!IS_ADMIN) return;
+            var sel = document.getElementById('reqStaffFilter');
+            if (!sel) return;
+            var owners = [];
+            allRequests.forEach(function(r) {
+                if (r.staff && owners.indexOf(r.staff) === -1) owners.push(r.staff);
+            });
+            owners.sort();
+            var opts = '<option value="">All faculty</option>';
+            owners.forEach(function(o) { opts += '<option value="' + esc(o) + '">' + esc(o) + '</option>'; });
+            var prev = reqFilterStaff;
+            sel.innerHTML = opts;
+            sel.value = prev; // preserve selection across reloads
+        }
+
+        function setReqStaffFilter(username) {
+            reqFilterStaff = username;
+            renderTiles();
         }
 
         function renderStats() {
@@ -494,10 +614,25 @@ $role = is_admin() ? 'Admin' : 'Staff';
                     '<p>No requests yet. Click "+ New Request" to create one.</p></div>';
                 return;
             }
+            // For admin/HOD, optionally filter to a single faculty member's requests.
+            var list = allRequests;
+            if (IS_ADMIN && reqFilterStaff) {
+                list = allRequests.filter(function(r) { return (r.staff || '') === reqFilterStaff; });
+            }
+            if (!list.length) {
+                container.innerHTML = '<div class="empty-state">' +
+                    '<svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5l5 5v11a2 2 0 01-2 2z"/></svg>' +
+                    '<p>No items to show.</p></div>';
+                return;
+            }
             var html = '<div class="tiles-grid">';
-            allRequests.forEach(function(r, i) {
+            list.forEach(function(r, i) {
                 var targets = r.target_students;
-                var targetLabel = targets === 'all' ? 'All Students' : (Array.isArray(targets) ? targets.length + ' student(s)' : 'All Students');
+                var targetLabel;
+                if (targets === 'class') targetLabel = 'Class: ' + esc(r.target_class || '?');
+                else if (Array.isArray(targets)) targetLabel = targets.length + ' student(s)';
+                else targetLabel = 'All Students';
+                var isAssign = (r.type === 'assignment');
                 html += '<div class="request-tile" style="animation-delay:' + (i * 0.08).toFixed(2) + 's">';
                 html += '<div class="tile-header">';
                 html += '<span class="tile-title">' + esc(r.title) + '</span>';
@@ -505,13 +640,19 @@ $role = is_admin() ? 'Admin' : 'Staff';
                 html += '</div>';
                 if (r.description) html += '<div class="tile-desc">' + esc(r.description) + '</div>';
                 html += '<div class="tile-meta">';
+                html += '<span class="tile-badge">' + (isAssign ? 'Assignment' : 'Request') + '</span>';
                 html += '<span class="tile-badge">' + targetLabel + '</span>';
+                if (isAssign && r.due_date) html += '<span class="tile-badge">Due ' + esc(r.due_date) + '</span>';
                 html += '<span class="tile-badge files">' + (r.file_count || 0) + ' file(s)</span>';
                 html += '<span class="tile-badge students">' + (r.students_responded || []).length + ' responded</span>';
+                // Show the owning faculty to HOD so the flat list is attributable.
+                if (IS_ADMIN && r.staff) html += '<span class="tile-badge">by ' + esc(r.staff) + '</span>';
                 html += '</div>';
                 html += '<div class="tile-actions">';
                 html += '<button class="btn-tool btn-sm" onclick="viewFiles(\'' + esc(r.id) + '\', \'' + esc(r.title) + '\')"><svg viewBox="0 0 24 24"><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>View Files</button>';
-                html += '<button class="btn-tool btn-sm btn-danger" onclick="deleteRequest(\'' + esc(r.id) + '\')"><svg viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>Remove</button>';
+                if (IS_ADMIN || r.staff === CURRENT_USER) {
+                    html += '<button class="btn-tool btn-sm btn-danger" onclick="deleteRequest(\'' + esc(r.id) + '\')"><svg viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>Remove</button>';
+                }
                 html += '</div></div>';
             });
             html += '</div>';
@@ -577,22 +718,34 @@ $role = is_admin() ? 'Admin' : 'Staff';
         }
 
         // ── Create Request ────────────────────────────────────────────────────
-        var targetAll = true;
+        var isAssignment = false;
 
-        function toggleTargetAll() {
-            targetAll = !targetAll;
-            var toggle = document.getElementById('allStudentsToggle');
-            toggle.classList.toggle('active', targetAll);
-            document.getElementById('targetGroup').style.display = targetAll ? 'none' : 'block';
+        // Show/hide the class dropdown vs. username box based on target mode.
+        function onReqTargetModeChange() {
+            var mode = document.getElementById('reqTargetMode').value;
+            document.getElementById('reqClassGroup').style.display = (mode === 'class') ? 'block' : 'none';
+            document.getElementById('targetGroup').style.display = (mode === 'users') ? 'block' : 'none';
+        }
+
+        function toggleIsAssignment() {
+            isAssignment = !isAssignment;
+            document.getElementById('isAssignmentToggle').classList.toggle('active', isAssignment);
+            document.getElementById('dueDateGroup').style.display = isAssignment ? 'block' : 'none';
         }
 
         function openCreateModal() {
             document.getElementById('reqTitle').value = '';
             document.getElementById('reqDesc').value = '';
             document.getElementById('reqTargets').value = '';
-            targetAll = true;
-            document.getElementById('allStudentsToggle').classList.add('active');
-            document.getElementById('targetGroup').style.display = 'none';
+            document.getElementById('reqDueDate').value = '';
+            document.getElementById('reqTargetMode').value = 'all';
+            // Populate the class dropdown (annClasses is loaded by loadAnnouncements)
+            var classSel = document.getElementById('reqClassSelect');
+            classSel.innerHTML = annClasses.map(function(c) { return '<option value="' + esc(c) + '">' + esc(c) + '</option>'; }).join('');
+            onReqTargetModeChange();
+            isAssignment = false;
+            document.getElementById('isAssignmentToggle').classList.remove('active');
+            document.getElementById('dueDateGroup').style.display = 'none';
             document.getElementById('createModal').classList.add('active');
         }
 
@@ -603,26 +756,226 @@ $role = is_admin() ? 'Admin' : 'Staff';
         function submitRequest() {
             var title = document.getElementById('reqTitle').value.trim();
             var desc = document.getElementById('reqDesc').value.trim();
-            var targets = targetAll ? 'all' : document.getElementById('reqTargets').value.trim();
+            var mode = document.getElementById('reqTargetMode').value;
+            var dueDate = document.getElementById('reqDueDate').value;
 
             if (!title) { showToast('Please enter a title'); return; }
+
+            var payload = {
+                title: title, description: desc,
+                type: isAssignment ? 'assignment' : 'request',
+                due_date: isAssignment ? dueDate : ''
+            };
+            if (mode === 'all') {
+                payload.target_students = 'all';
+            } else if (mode === 'class') {
+                payload.target_mode = 'class';
+                payload.target_class = document.getElementById('reqClassSelect').value;
+            } else { // users
+                payload.target_students = document.getElementById('reqTargets').value.trim();
+            }
 
             fetch('staff_api.php?action=create_request', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ title: title, description: desc, target_students: targets })
+                body: JSON.stringify(payload)
             })
             .then(function(r) { return r.json(); })
             .then(function(d) {
                 if (d.success) {
                     closeModal();
-                    showToast('Request created successfully');
+                    showToast(isAssignment ? 'Assignment created successfully' : 'Request created successfully');
                     loadRequests();
                 } else {
                     showToast(d.error || 'Failed to create request');
                 }
             })
             .catch(function() { showToast('Failed to create request'); });
+        }
+
+        // ── Announcements ────────────────────────────────────────────────────
+        var annTargetAll = true;
+        var annClasses = [];
+        var annFilterBy = 'all';      // HOD-only: all | hod | staff
+        var annFilterStaff = '';      // HOD-only: specific faculty username
+
+        function loadAnnouncements() {
+            var url = 'announcements_api.php?action=list';
+            if (IS_ADMIN) {
+                if (annFilterStaff) {
+                    url += '&staff=' + encodeURIComponent(annFilterStaff);
+                } else {
+                    url += '&by=' + encodeURIComponent(annFilterBy);
+                }
+            }
+            fetch(url)
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.error) { showToast(data.error); return; }
+                    annClasses = data.classes || [];
+                    renderAnnouncementTiles(data.announcements || []);
+                })
+                .catch(function() { showToast('Failed to load announcements'); });
+        }
+
+        // HOD-only: load the list of faculty who have posted, into the dropdown
+        function loadAnnStaffFilter() {
+            if (!IS_ADMIN) return;
+            fetch('announcements_api.php?action=staff_list')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    var sel = document.getElementById('annStaffFilter');
+                    if (!sel) return;
+                    var opts = '<option value="">— By specific faculty —</option>';
+                    (data.staff || []).forEach(function(s) {
+                        opts += '<option value="' + esc(s) + '">' + esc(s) + '</option>';
+                    });
+                    sel.innerHTML = opts;
+                })
+                .catch(function() {});
+        }
+
+        function setAnnFilter(by, btn) {
+            annFilterBy = by;
+            annFilterStaff = '';
+            var sel = document.getElementById('annStaffFilter');
+            if (sel) sel.value = '';
+            document.querySelectorAll('.ann-filter').forEach(function(b) { b.classList.remove('active'); });
+            if (btn) btn.classList.add('active');
+            loadAnnouncements();
+        }
+
+        function setAnnStaffFilter(username) {
+            annFilterStaff = username;
+            // When a specific faculty is chosen, clear the by-role button highlight
+            if (username) {
+                document.querySelectorAll('.ann-filter').forEach(function(b) { b.classList.remove('active'); });
+            } else {
+                // Reverting to "no specific faculty" — re-highlight current by-role filter
+                document.querySelectorAll('.ann-filter').forEach(function(b) {
+                    b.classList.toggle('active', b.getAttribute('data-by') === annFilterBy);
+                });
+            }
+            loadAnnouncements();
+        }
+
+        function renderAnnouncementTiles(list) {
+            var container = document.getElementById('annContainer');
+            if (!list.length) {
+                container.innerHTML = '<div class="empty-state"><p>No announcements yet. Click "+ New Announcement" to post one.</p></div>';
+                return;
+            }
+            var html = '<div class="tiles-grid">';
+            list.forEach(function(a, i) {
+                var badge = a.author_role === 'admin' ? 'HOD' : 'Faculty';
+                var scope = a.target_type === 'class' ? esc(a.target_class) : 'All Students';
+                var author = esc(a.author_display || a.author || '');
+                html += '<div class="request-tile" style="animation-delay:' + (i * 0.08).toFixed(2) + 's">';
+                html += '<div class="tile-header"><span class="tile-title">' + esc(a.title) + '</span><span class="tile-date">' + fmtDate(a.created_at) + '</span></div>';
+                if (a.body) html += '<div class="tile-desc">' + esc(a.body) + '</div>';
+                html += '<div class="tile-meta"><span class="tile-badge">' + badge + '</span><span class="tile-badge">' + scope + '</span><span class="tile-badge">by ' + author + '</span></div>';
+                // Only the author or an admin may remove an announcement.
+                if (IS_ADMIN || a.author === CURRENT_USER) {
+                    html += '<div class="tile-actions"><button class="btn-tool btn-sm btn-danger" onclick="deleteAnnouncement(\'' + esc(a.id) + '\')">Remove</button></div>';
+                }
+                html += '</div>';
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function toggleAnnAll() {
+            annTargetAll = !annTargetAll;
+            document.getElementById('annAllToggle').classList.toggle('active', annTargetAll);
+            document.getElementById('annClassGroup').style.display = annTargetAll ? 'none' : 'block';
+        }
+
+        function openAnnModal() {
+            document.getElementById('annTitle').value = '';
+            document.getElementById('annBody').value = '';
+            annTargetAll = true;
+            document.getElementById('annAllToggle').classList.add('active');
+            document.getElementById('annClassGroup').style.display = 'none';
+            var select = document.getElementById('annClassSelect');
+            select.innerHTML = annClasses.map(function(c) { return '<option value="' + esc(c) + '">' + esc(c) + '</option>'; }).join('');
+            document.getElementById('annModal').classList.add('active');
+        }
+
+        function closeAnnModal() {
+            document.getElementById('annModal').classList.remove('active');
+        }
+
+        function submitAnnouncement() {
+            var title = document.getElementById('annTitle').value.trim();
+            var body = document.getElementById('annBody').value.trim();
+            var targetClass = document.getElementById('annClassSelect').value;
+
+            if (!title) { showToast('Please enter a title'); return; }
+
+            fetch('announcements_api.php?action=create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    title: title, body: body,
+                    target_type: annTargetAll ? 'all' : 'class',
+                    target_class: annTargetAll ? '' : targetClass
+                })
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                if (d.success) { closeAnnModal(); showToast('Announcement posted'); loadAnnouncements(); }
+                else { showToast(d.error || 'Failed to post announcement'); }
+            })
+            .catch(function() { showToast('Failed to post announcement'); });
+        }
+
+        function deleteAnnouncement(id) {
+            if (!confirm('Remove this announcement?')) return;
+            fetch('announcements_api.php?action=delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id })
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                if (d.success) { showToast('Announcement removed'); loadAnnouncements(); }
+                else { showToast(d.error || 'Failed to remove announcement'); }
+            })
+            .catch(function() { showToast('Failed to remove announcement'); });
+        }
+
+        // ── Student / Staff Shared Files Viewer (read-only) ──────────────────
+        function viewSharedFolder() {
+            var target = document.getElementById('sharedTargetInput').value.trim();
+            if (!target) { showToast('Enter a username first'); return; }
+
+            fetch('shared_api.php?action=list&target=' + encodeURIComponent(target))
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.error) { showToast(data.error); return; }
+                    var container = document.getElementById('sharedTargetContainer');
+                    if (data.owner !== target.toLowerCase()) {
+                        showToast('Access denied for that user’s shared folder');
+                        container.innerHTML = '';
+                        return;
+                    }
+                    var files = data.files || [];
+                    if (!files.length) {
+                        container.innerHTML = '<div class="empty-state"><p>No shared files for ' + esc(data.owner) + '.</p></div>';
+                        return;
+                    }
+                    var html = '<div class="file-list-box">';
+                    files.forEach(function(f, i) {
+                        html += '<div class="file-row" style="animation-delay:' + (i * 0.04).toFixed(2) + 's">';
+                        html += '<span class="file-name">' + esc(f.name) + '</span>';
+                        html += '<span class="file-size">' + fmtBytes(f.size) + '</span>';
+                        html += '<div class="file-actions"><button class="btn-tool btn-sm" onclick="window.open(\'shared_api.php?action=download&target=' + encodeURIComponent(data.owner) + '&file=' + encodeURIComponent(f.name) + '\', \'_blank\')">Download</button></div>';
+                        html += '</div>';
+                    });
+                    html += '</div>';
+                    container.innerHTML = html;
+                })
+                .catch(function() { showToast('Failed to load shared folder'); });
         }
 
         // ── Delete Request ────────────────────────────────────────────────────
@@ -643,6 +996,8 @@ $role = is_admin() ? 'Admin' : 'Staff';
 
         // ── Init ────────────────────────────────────────────────────────────────────
         loadRequests();
+        loadAnnouncements();
+        loadAnnStaffFilter();
 
         // ── Clock ─────────────────────────────────────────────────────────────
         function updateStaffClock() {

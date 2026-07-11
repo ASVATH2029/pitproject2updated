@@ -39,9 +39,15 @@ foreach ($requests as &$req) {
         }
     }
 
-    // Don't expose internal paths to the client
+    // Don't expose targeting internals to the client
     unset($req['target_students']);
+    unset($req['target_class']);
 }
 unset($req);
 
-echo json_encode(['requests' => $requests]);
+// Split into plain document requests vs. assignments (due-date-bearing)
+// so the dashboard can render them as two distinct sections.
+$plain_requests = array_values(array_filter($requests, fn($r) => ($r['type'] ?? 'request') !== 'assignment'));
+$assignments = array_values(array_filter($requests, fn($r) => ($r['type'] ?? 'request') === 'assignment'));
+
+echo json_encode(['requests' => $plain_requests, 'assignments' => $assignments]);

@@ -128,7 +128,11 @@ if (!$authenticated) {
         password_verify($password, $userData['password'])
     ) {
         $authenticated = true;
-        $role = $userData['role'] ?? get_role($username);
+        // Always resolve role via get_role() rather than the .user file's
+        // stale 'role' snapshot — get_role() checks ADMIN_USERS and the
+        // live .staff_users.json list, so staff promotions/demotions take
+        // effect on next login instead of being stuck at signup-time role.
+        $role = get_role($username);
     }
 }
 
