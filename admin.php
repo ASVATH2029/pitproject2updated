@@ -182,9 +182,6 @@ $used_pct = min(100, round(($total_storage / $system_quota) * 100));
         .btn-action:hover { background: rgba(255, 255, 255, 0.2); }
         .btn-danger { background: rgba(231, 76, 60, 0.2); color: #ff9999; }
         .btn-danger:hover { background: rgba(231, 76, 60, 0.4); }
-        .btn-staff { background: rgba(160, 200, 140, 0.15); color: #a0c88c; }
-        .btn-staff:hover { background: rgba(160, 200, 140, 0.3); }
-        .btn-staff.active { background: rgba(160, 200, 140, 0.3); border: 1px solid rgba(160,200,140,0.4); }
 
         @keyframes cardFloat { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
@@ -313,7 +310,6 @@ $used_pct = min(100, round(($total_storage / $system_quota) * 100));
                             </div>
                         </div>
                         <div class="btn-group">
-                            <button class="btn-action btn-staff" onclick="toggleStaff('<?= htmlspecialchars(addslashes($u['username'])) ?>', true)">Make Staff</button>
                             <button class="btn-action" onclick="window.open('dashboard.php?target=<?= urlencode($u['username']) ?>', '_blank')">Override Files</button>
                             <button class="btn-action btn-danger" onclick="deleteUser('<?= htmlspecialchars(addslashes($u['username'])) ?>')">Delete User</button>
                         </div>
@@ -345,7 +341,6 @@ $used_pct = min(100, round(($total_storage / $system_quota) * 100));
                             </div>
                         </div>
                         <div class="btn-group">
-                            <button class="btn-action btn-staff active" onclick="toggleStaff('<?= htmlspecialchars(addslashes($u['username'])) ?>', false)">Remove Staff</button>
                             <button class="btn-action" onclick="window.open('dashboard.php?target=<?= urlencode($u['username']) ?>', '_blank')">Override Files</button>
                             <button class="btn-action btn-danger" onclick="deleteUser('<?= htmlspecialchars(addslashes($u['username'])) ?>')">Delete User</button>
                         </div>
@@ -366,7 +361,7 @@ $used_pct = min(100, round(($total_storage / $system_quota) * 100));
 
             <div class="bulk-upload-area" onclick="triggerBulkUpload()">
                 <p>Upload Staff Roster</p>
-                <p class="hint">Drop a .txt or .csv file with one username per line. Listed usernames are pre-approved as staff — if they haven't registered yet, their account becomes staff automatically the moment they sign up; if they're already registered, they're promoted immediately.</p>
+                <p class="hint">Drop a .txt or .csv file with one username per line. This file is the full staff roster — it REPLACES the current list. Usernames on it are staff (registered instantly if they already have an account, or automatically the moment they sign up); usernames left off lose staff access.</p>
                 <input type="file" id="bulkFileInput" accept=".txt,.csv" style="display:none" onchange="handleBulkUpload(this)">
             </div>
 
@@ -418,34 +413,19 @@ $used_pct = min(100, round(($total_storage / $system_quota) * 100));
         }
 
         // ── Staff Management ──────────────────────────────────────────────────
-        function toggleStaff(username, makeStaff) {
-            var action = makeStaff ? 'promote' : 'demote';
-            var msg = makeStaff ? 'Grant staff privileges to ' + username + '?' : 'Remove staff privileges from ' + username + '?';
-            if (!confirm(msg)) return;
-
-            fetch('staff_manage.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: action, username: username })
-            })
-            .then(function(r) { return r.json(); })
-            .then(function(data) {
-                if (data.success) {
-                    showToast(username + (makeStaff ? ' is now staff' : ' removed from staff'));
-                    setTimeout(function(){ window.location.reload(); }, 1000);
-                } else {
-                    alert('Error: ' + (data.error || 'Unknown error'));
-                }
-            })
-            .catch(function() { alert('Server error'); });
-        }
-
+        // Staff status is driven entirely by the uploaded roster (below) --
+        // there is no manual promote/demote button. To remove someone's staff
+        // access, re-upload a roster file that omits their username.
         function triggerBulkUpload() {
             document.getElementById('bulkFileInput').click();
         }
 
         function handleBulkUpload(input) {
             if (!input.files[0]) return;
+            if (!confirm('This replaces the entire staff roster. Anyone currently staffed but not in this file will lose staff access. Continue?')) {
+                input.value = '';
+                return;
+            }
             var fd = new FormData();
             fd.append('staff_file', input.files[0]);
 
@@ -456,7 +436,7 @@ $used_pct = min(100, round(($total_storage / $system_quota) * 100));
             .then(function(r) { return r.json(); })
             .then(function(data) {
                 if (data.success) {
-                    showToast('Imported ' + data.count + ' staff member(s)');
+                    showToast('Roster updated: +' + data.count + ' added, -' + data.removed + ' removed (' + data.total + ' total staff)');
                     setTimeout(function(){ window.location.reload(); }, 1500);
                 } else {
                     alert('Error: ' + (data.error || 'Unknown error'));
